@@ -1,4 +1,4 @@
-[![capstring](https://img.shields.io/badge/CaPiTaLiZe-StRiNgS!-green.svg)](https://github.com/brianfunk/capstring)
+[![capstring](https://img.shields.io/badge/CaPiTaLiZe-StRiNgS!-brightgreen.svg)](https://github.com/brianfunk/capstring)
 [![GitHub](https://img.shields.io/github/release/brianfunk/capstring.svg?maxAge=2592000)](https://github.com/brianfunk/capstring)
 [![npm](https://img.shields.io/npm/v/capstring.svg?maxAge=2592000)](https://www.npmjs.com/package/capstring)
 [![Code Climate](https://codeclimate.com/repos/57ddda322e9d4f14f8000f5d/badges/c29cb38ba98e57fc1708/gpa.svg)](https://codeclimate.com/repos/57ddda322e9d4f14f8000f5d/feed)
