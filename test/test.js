@@ -104,6 +104,10 @@ describe('capstring', function() {
 		expect( capstring('hello WORLD of Interwebs', 'leet') ).to.equal('h3££0 w0r£d 0ƒ 1Иt3rw3b$');
 	});
     
+    it('$h0uld be esreveR', function() {
+		expect( capstring('Hello World', 'reverse') ).to.equal('dlroW olleH');
+	});
+    
     it('should be same if not valid cap type', function() {
 		expect( capstring('hello world', 'other') ).to.equal('hello world');
 	});

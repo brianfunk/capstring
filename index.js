@@ -55,6 +55,9 @@ var cap = function(str,c) {
     else if (c === 'leet') {
 		return str.toLowerCase().replace(/i/g, '1').replace(/e/g, '3').replace(/o/g, '0').replace(/l/g, '£').replace(/f/g, 'ƒ').replace(/s/g, '$').replace(/n/g, 'И');
 	}
+    else if (c === 'reverse') {
+	   return str.split("").reverse().join("");	
+    }
     else if (c === 'crazy') {
         for (var i = 0; i < str.length; i++){
             if (i % 2 === 0) {
