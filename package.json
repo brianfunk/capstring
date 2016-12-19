@@ -1,0 +1,36 @@
+{
+  "name": "capstring",
+  "version": "0.0.1",
+  "description": "CaPiTaLiZe StRiNgS!",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test",
+    "start": "node index.js",
+    "coverage": "istanbul cover ./node_modules/mocha/bin/_mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianfunk/capstring.git"
+  },
+  "keywords": [
+    "cap",
+    "string",
+    "word",
+    "capitalize",
+    "capital",
+    "case"
+  ],
+  "author": "Brian Funk",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brianfunk/capstring/issues"
+  },
+  "homepage": "https://github.com/brianfunk/capstring#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "codeclimate-test-reporter": "^0.3.3",
+    "codecov": "^1.0.1",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.0.2"
+  }
+}
