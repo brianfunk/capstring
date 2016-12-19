@@ -1,6 +1,6 @@
 {
   "name": "capstring",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CaPiTaLiZe StRiNgS!",
   "main": "index.js",
   "scripts": {
