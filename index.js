@@ -56,7 +56,7 @@ var cap = function(str,c) {
 		return str.toLowerCase().replace(/i/g, '1').replace(/e/g, '3').replace(/o/g, '0').replace(/l/g, '£').replace(/f/g, 'ƒ').replace(/s/g, '$').replace(/n/g, 'И');
 	}
     else if (c === 'reverse') {
-	   return str.split("").reverse().join("");	
+        return str.split('').reverse().join('');
     }
     else if (c === 'crazy') {
         for (var i = 0; i < str.length; i++){
@@ -92,11 +92,11 @@ var cap = function(str,c) {
 var string = function(s, opt) {
 	
 	if (!s) {
-		console.error('s isNaN : ' + s);
+		console.log('s false : ' + s);
 		return false;
 	}
 	else if (typeof s !== 'string') {
-		console.error('s typeof : ' + s);
+		console.log('s typeof : ' + s);
 		return false;
 	}
 	else {			
