@@ -1,0 +1,2 @@
+# capstring
+CaPiTaLiZe StRiNgS!
