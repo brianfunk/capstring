@@ -1,3 +1,14 @@
+# Tests
+test
+tests
+testing
+
+# Services
+.codeclimate.yml
+.travis.yml
+codecov.yml
+.gitignore
+
 # Logs
 logs
 *.log
