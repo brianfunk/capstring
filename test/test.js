@@ -52,6 +52,10 @@ describe('capstring', function() {
 		expect( capstring('HELLO world', 'same') ).to.equal('HELLO world');
 	});
     
+    it('should be same if proper case', function() {
+		expect( capstring('HELLO world', 'proper') ).to.equal('HELLO world');
+	});
+    
     it('should be no case', function() {
 		expect( capstring('HELLO world', 'none') ).to.equal('');
 	});
@@ -94,6 +98,14 @@ describe('capstring', function() {
     
     it('ShOuLd be RANDOM?', function() {
 		expect( capstring('hello world', 'random') ).to.be.a('string');
+	});
+    
+    it('$h0uld be l33t', function() {
+		expect( capstring('hello WORLD of Interwebs', 'leet') ).to.equal('h3££0 w0r£d 0ƒ 1Иt3rw3b$');
+	});
+    
+    it('should be same if not valid cap type', function() {
+		expect( capstring('hello world', 'other') ).to.equal('hello world');
 	});
   
 });
