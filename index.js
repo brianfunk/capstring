@@ -15,7 +15,7 @@
 
 var cap = function(str,c) {
 
-    var nstr;
+    var nstr = '';
     
 	if (c === 'same') {		
 		return str;
@@ -41,9 +41,7 @@ var cap = function(str,c) {
 		return str.charAt(0).toLowerCase() + cap(str, 'pascal').substr(1);
 	}
     else if (c === 'pascal') {
-        return str.replace(/\w([^-\s]*)/g, function(txt){
-            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-        }).replace(/ /g, '');
+        return cap(str, 'title').replace(/ /g, '');
 	}
     else if (c === 'sentence') {
 		return str.charAt(0).toUpperCase() + str.substr(1).toLowerCase();
@@ -55,7 +53,6 @@ var cap = function(str,c) {
 		return str.toUpperCase().replace(/ /g, '_');
 	}
     else if (c === 'crazy') {
-		nstr = '';
         for (var i = 0; i < str.length; i++){
             if (i % 2 === 0) {
                 nstr += str.charAt(i).toLowerCase();
@@ -67,16 +64,14 @@ var cap = function(str,c) {
         return nstr;
 	}
     else if (c === 'random') {
-        nstr = '';
-        for (var i = 0; i < str.length; i++){
-            
+        for (var j = 0; j < str.length; j++){
             var rnd = Math.random();
             
             if (rnd > 0.5) {
-                nstr += str.charAt(i).toLowerCase();
+                nstr += str.charAt(j).toLowerCase();
             }
             else {
-                nstr += str.charAt(i).toUpperCase();
+                nstr += str.charAt(j).toUpperCase();
             }
         }
         return nstr;
