@@ -16,6 +16,55 @@
 
 CaPiTaLiZe StRiNgS!
 
+## Install
+
+    npm install capstring --save
+    
+## Usage
+
+    var capstring = require('capstring');
+    
+    capstring(string, cap);
+
+## Values
+
+Valid capitalization options:
+
++ title
++ sentence
++ upper
++ lower
++ same
++ none
++ proper
++ camel
++ pascal
++ snake
++ python
++ crazy
++ random
++ leet
++ reverse
+
+## Examples
+
+    capstring('hello WORLD', 'title');  // returns 'Hello World'
+    capstring('hello WORLD', 'sentence');  // returns 'Hello world'
+    capstring('hello WORLD', 'upper');  // returns 'HELLO WORLD'
+    capstring('hello WORLD', 'lower');  // returns 'hello world'
+    
+## Tests
+    
+    npm test
+    
+## Coverage
+
+    npm run coverage
+    
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on the code of conduct and the process for submitting pull requests.
+
 ## Versioning
 
 This application is maintained under [the Semantic Versioning 2.0 guidelines](http://semver.org/spec/v2.0.0.html).
