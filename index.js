@@ -31,6 +31,9 @@ var cap = function(str,c) {
             return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
         });
 	}
+    else if (c === 'sentence') {
+		return str.charAt(0).toUpperCase() + str.substr(1).toLowerCase();
+	}
 	else if (c === 'upper') {
 		return str.toUpperCase();
 	}
@@ -42,9 +45,6 @@ var cap = function(str,c) {
 	}
     else if (c === 'pascal') {
         return cap(str, 'title').replace(/ /g, '');
-	}
-    else if (c === 'sentence') {
-		return str.charAt(0).toUpperCase() + str.substr(1).toLowerCase();
 	}
     else if (c === 'snake') {
 		return str.replace(/ /g, '_');
