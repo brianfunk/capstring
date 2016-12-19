@@ -14,6 +14,9 @@
 
 # capstring
 
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/fe13d389817449bbabbf851867226408)](https://www.codacy.com/app/bfunk/capstring?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=brianfunk/capstring&amp;utm_campaign=badger)
+
 CaPiTaLiZe StRiNgS!
 
 ## Install
