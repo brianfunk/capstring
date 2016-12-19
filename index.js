@@ -41,9 +41,7 @@ var cap = function(str,c) {
 		return str.charAt(0).toLowerCase() + cap(str, 'pascal').substr(1);
 	}
     else if (c === 'pascal') {
-        return str.replace(/\w([^-\s]*)/g, function(txt){
-            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-        }).replace(/ /g, '');
+        return cap(str, 'title').replace(/ /g, '');
 	}
     else if (c === 'sentence') {
 		return str.charAt(0).toUpperCase() + str.substr(1).toLowerCase();
