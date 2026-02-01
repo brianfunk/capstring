@@ -194,7 +194,7 @@ const capstring = (str, style = 'same') => {
         i % 2 === 0 ? char.toLowerCase() : char.toUpperCase()
       ).join('');
 
-    case 'alternate':
+    case 'alternate': {
       // aLtErNaTe - alternates only on letters, ignoring spaces
       let letterIndex = 0;
       return str.split('').map(char => {
@@ -205,6 +205,7 @@ const capstring = (str, style = 'same') => {
         }
         return char;
       }).join('');
+    }
 
     case 'crazy':
       // cRaZy CaSe - pseudo-random based on char code (deterministic but looks random)
