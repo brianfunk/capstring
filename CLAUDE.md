@@ -2,7 +2,7 @@
 
 ## Project Context
 
-capstring is a lightweight JavaScript library for text capitalization and transformation. It supports 24+ different styles including case transformations, code conventions, and fun styles.
+capstring is a lightweight JavaScript library for text capitalization and transformation. It supports 29 different styles including case transformations, code conventions, and fun styles.
 
 ## Development Commands
 
@@ -28,11 +28,12 @@ Single-file library with a main function and helper exports:
 - `isValidStyle(style)` - Validates a style name
 - `STYLES` - Frozen array constant of all styles
 
-## Supported Styles (24 total)
+## Supported Styles (29 total)
 
 **Case:** same, none, proper, title, sentence, upper, lower, swap
-**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path
+**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train
 **Fun:** leet, reverse, sponge, mock, alternate, crazy, random
+**New:** hashtag, acronym, rot13, flip
 
 ## When Making Changes
 

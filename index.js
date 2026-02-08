@@ -7,7 +7,7 @@
 */
 
 /**
- * capstring - CaPiTaLiZe StRiNgS in 30+ ways!
+ * capstring - CaPiTaLiZe StRiNgS in 29 ways!
  * @module capstring
  */
 
