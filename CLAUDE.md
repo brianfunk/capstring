@@ -2,7 +2,7 @@
 
 ## Project Context
 
-capstring is a lightweight JavaScript library for text capitalization and transformation. It supports 29 different styles including case transformations, code conventions, and fun styles.
+capstring is a lightweight JavaScript library for text capitalization and transformation. It supports 37 styles including case transformations, code conventions, encodings, and fun Unicode styles. Serious and robust, even though it's for fun.
 
 ## Development Commands
 
@@ -22,26 +22,33 @@ npm run test:coverage  # Run tests with coverage report
 
 ## Architecture
 
-Single-file library with a main function and helper exports:
-- `capstring(str, style)` - Main transformation function
-- `getStyles()` - Returns array of all style names
-- `isValidStyle(style)` - Validates a style name
-- `STYLES` - Frozen array constant of all styles
+Single-file library plus a thin CLI:
+- `index.js` - the whole library. **Must stay browser-safe**: no `node:` imports, no `process`.
+  - `capstring(str, style, { strict })` - Main transformation function
+  - `capstringAll(str, options)` - Every style at once
+  - `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
+- `cli.js` - `main(argv, io)` with injected I/O so it is unit-testable; `bin/capstring.js` is the shim
+- `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
 
-## Supported Styles (29 total)
+## Supported Styles (37 total)
 
 **Case:** same, none, proper, title, sentence, upper, lower, swap
-**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train
-**Fun:** leet, reverse, sponge, mock, alternate, crazy, random
-**New:** hashtag, acronym, rot13, flip
+**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym
+**Fun:** reverse, sponge, mock, alternate, crazy, random, clap, piglatin
+**Encoding:** leet, rot13, morse, binary
+**Art:** flip, smallcaps, bubble, wide, strike
+
+Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 
 ## When Making Changes
 
 1. Ensure all tests pass: `npm test`
-2. Maintain 100% coverage: `npm run test:coverage`
+2. Maintain 100% coverage (thresholds enforced): `npm run test:coverage`
 3. Run linter: `npm run lint`
-4. Update CHANGELOG.md for any user-facing changes
-5. Preserve the ASCII art header
+4. Update CHANGELOG.md for any user-facing changes; behavior changes get their own section
+5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts`, plus README table
+6. Preserve the ASCII art header
+7. Verify `npm pack --dry-run` still lists only the intended files
 
 ## Related Projects
 

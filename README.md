@@ -9,16 +9,20 @@
 
 # capstring
 
-> CaPiTaLiZe StRiNgS in 29 ways!
+> CaPiTaLiZe StRiNgS in 37 ways!
 
-A lightweight, zero-dependency library for text capitalization and transformation. Perfect for formatting strings for code, URLs, display, or fun!
+A small, serious, zero-dependency library for turning text into any case, code convention, or
+ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 
 ## Features
 
-- **29 transformation styles** - More than any other library!
-- **Zero dependencies** - Lightweight and fast
-- **ESM native** - Modern JavaScript modules
-- **98% test coverage** - Thoroughly tested
+- **37 transformation styles** - case, code conventions, encodings, and Unicode art
+- **Zero dependencies** - one 17 kB file, browser-safe
+- **Unicode aware** - `Élan Vital`, `crème-brûlée`, emoji and flags survive every style
+- **Smart tokenizer** - `XMLHttpRequest` becomes `xml-http-request`, `hello_world` becomes `helloWorld`
+- **CLI** - `npx capstring kebab "Hello World"`
+- **TypeScript types** - autocomplete for every style name
+- **100% test coverage**
 
 ## Installation
 
@@ -31,126 +35,166 @@ npm install capstring
 ```javascript
 import capstring from 'capstring';
 
-capstring('hello world', 'title');     // 'Hello World'
-capstring('hello world', 'camel');     // 'helloWorld'
-capstring('hello world', 'kebab');     // 'hello-world'
-capstring('hello world', 'constant');  // 'HELLO_WORLD'
-capstring('hello world', 'leet');      // 'h3££0 w0r£d'
-capstring('hello world', 'hashtag');   // '#HelloWorld'
+capstring('hello world', 'title');        // 'Hello World'
+capstring('XMLHttpRequest', 'kebab');     // 'xml-http-request'
+capstring('Crème Brûlée & Co.', 'slug');  // 'creme-brulee-co'
+capstring('hello world', 'constant');     // 'HELLO_WORLD'
+capstring('hello world', 'sponge');       // 'HeLlO WoRlD'
+capstring('hello world', 'flip');         // 'plɹoʍ ollǝɥ'
+capstring('hello world', 'hashtag');      // '#HelloWorld'
 ```
 
-## All 29 Styles
+## CLI
 
-### Case Styles
+```bash
+npx capstring kebab "Hello World"          # hello-world
+echo "hello world" | npx capstring title   # Hello World
+npx capstring --all "hello world"          # every style, one per line
+npx capstring --list                       # style names
+npx capstring snake --json "Hello World"   # {"input":"Hello World","style":"snake","output":"hello_world"}
+```
+
+Exit code `2` means a usage error (unknown style or option, missing text).
+
+## All 37 Styles
+
+### Case
 
 | Style | Input | Output |
 |-------|-------|--------|
 | `same` | Hello World | Hello World |
 | `none` | Hello World | *(empty)* |
-| `proper` | Hello World | Hello World |
-| `title` | hello world | Hello World |
-| `sentence` | hello world | Hello world |
+| `proper` | Hello World | Hello World *(alias of same)* |
+| `title` | élan vital | Élan Vital |
+| `sentence` | hello. world! | Hello. World! |
 | `upper` | hello world | HELLO WORLD |
 | `lower` | HELLO WORLD | hello world |
 | `swap` | Hello World | hELLO wORLD |
 
-### Code Styles
+### Code
 
 | Style | Input | Output |
 |-------|-------|--------|
 | `camel` | hello world | helloWorld |
 | `pascal` | hello world | HelloWorld |
 | `snake` | hello world | hello_world |
-| `kebab` | hello world | hello-world |
-| `slug` | hello world | hello-world |
+| `kebab` | Crème Brûlée | crème-brûlée |
+| `slug` | Crème Brûlée & Co. | creme-brulee-co |
 | `constant` | hello world | HELLO_WORLD |
-| `python` | hello world | HELLO_WORLD |
+| `python` | hello world | HELLO_WORLD *(alias of constant)* |
 | `dot` | hello world | hello.world |
 | `path` | hello world | hello/world |
 | `train` | hello world | Hello-World |
+| `hashtag` | hello world | #HelloWorld |
+| `acronym` | as soon as possible | ASAP |
 
-### Fun Styles
+All code styles share one tokenizer: words split on whitespace, `_`, `-`, `.`, `/`, punctuation,
+and camelCase boundaries (`XMLHttpRequest` → `xml`, `http`, `request`). Letters stay attached to
+digits (`utf8`, `mp3`). Apostrophes are dropped (`don't` → `dont`).
+
+### Fun
 
 | Style | Input | Output |
 |-------|-------|--------|
-| `leet` | hello world | h3££0 w0r£d |
 | `reverse` | hello world | dlrow olleh |
 | `sponge` | hello world | HeLlO WoRlD |
 | `mock` | hello world | hElLo wOrLd |
-| `alternate` | hello world | hElLo WoRlD |
-| `crazy` | hello world | *(deterministic random)* |
-| `random` | hello world | *(random case)* |
+| `alternate` | hello world | hElLo WoRlD *(letters only)* |
+| `crazy` | hello world | *(deterministic pseudo-random case)* |
+| `random` | hello world | *(random case, different every call)* |
+| `clap` | hello world | hello 👏 world |
+| `piglatin` | hello world | ellohay orldway |
 
-### New Styles
+### Encodings
 
 | Style | Input | Output |
 |-------|-------|--------|
-| `hashtag` | hello world | #HelloWorld |
-| `acronym` | as soon as possible | ASAP |
+| `leet` | hello world | h3110 w0r1d |
 | `rot13` | hello | uryyb |
+| `morse` | SOS 1 | ... --- ... / .---- |
+| `binary` | hi | 01101000 01101001 |
+
+### Unicode Art
+
+| Style | Input | Output |
+|-------|-------|--------|
 | `flip` | hello | ollǝɥ |
+| `smallcaps` | hello | ʜᴇʟʟᴏ |
+| `bubble` | hello | ⓗⓔⓛⓛⓞ |
+| `wide` | hello | ｈｅｌｌｏ |
+| `strike` | hello | h̶e̶l̶l̶o̶ |
 
 ## API
 
-### `capstring(str, style)`
-
-Transform a string to the specified style.
+### `capstring(str, style = 'same', options?)`
 
 ```javascript
 import capstring from 'capstring';
 
 capstring('hello world', 'title');  // 'Hello World'
 capstring('hello world');           // 'hello world' (default: same)
-capstring(123);                     // false (invalid input)
+capstring('');                      // ''
+capstring(123);                     // false (not a string)
+capstring('hello', 'nope');         // 'hello' (unknown style returns input)
+
+// Strict mode throws instead
+capstring(123, 'title', { strict: true });    // TypeError
+capstring('hi', 'nope', { strict: true });    // RangeError
 ```
 
-### `getStyles()`
+### `capstringAll(str, options?)`
 
-Get an array of all supported style names.
+Every style at once, keyed by style name in `STYLES` order.
 
 ```javascript
-import { getStyles } from 'capstring';
+import { capstringAll } from 'capstring';
 
-getStyles();  // ['same', 'none', 'proper', 'title', ...]
+const all = capstringAll('hello world');
+all.kebab;   // 'hello-world'
+all.morse;   // '.... . .-.. .-.. --- / .-- --- .-. .-.. -..'
 ```
 
-### `isValidStyle(style)`
-
-Check if a style is supported.
+### `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
 
 ```javascript
-import { isValidStyle } from 'capstring';
+import { getStyles, isValidStyle, STYLES, CATEGORIES } from 'capstring';
 
+getStyles();              // ['same', 'none', 'proper', ...] (fresh copy)
 isValidStyle('kebab');    // true
-isValidStyle('invalid');  // false
+STYLES.length;            // 37 (frozen)
+CATEGORIES.art;           // ['flip', 'smallcaps', 'bubble', 'wide', 'strike'] (frozen)
 ```
 
-### `STYLES`
+### TypeScript
 
-Frozen array of all style names.
+```typescript
+import capstring, { type Style } from 'capstring';
 
-```javascript
-import { STYLES } from 'capstring';
-
-STYLES.length;  // 29
+const style: Style = 'kebab';   // autocompletes all 37 names
+capstring('Hello', style);      // string
 ```
 
-## REST API
+## Behavior notes
 
-Looking for an API? Check out [cAPIta](https://github.com/brianfunk/cAPIta) - a full REST API powered by capstring!
-
-```bash
-curl https://your-api.com/title/hello%20world
-# {"input":"hello world","output":"Hello World","cap":"title"}
-```
+- **Unicode**: every style iterates code points, and `reverse` / `flip` iterate grapheme clusters, so
+  emoji, flags, and combining accents stay intact. Requires `Intl.Segmenter` (Node 16+, all modern browsers).
+- **`title`** capitalizes every word, including small words like "of" and "the". Hyphens and
+  underscores break words (`stop-me` → `Stop-Me`). Apostrophes stay inside words (`don't` → `Don't`).
+- **`sentence`** capitalizes after `.`, `!`, `?` followed by whitespace. `3.14 is pi` is left alone.
+- **`slug`** is ASCII only: diacritics are folded (`é` → `e`, `ß` → `ss`), everything else becomes a
+  hyphen. Scripts with no ASCII folding (CJK, Cyrillic) produce an empty slug. Use `kebab` to keep
+  Unicode letters.
+- **`piglatin`** and **`morse`** only understand Latin letters; other characters pass through
+  (`piglatin`) or are dropped (`morse`).
+- **`random`** is the only non-deterministic style.
 
 ## Development
 
 ```bash
-npm install        # Install dependencies
-npm test           # Run tests
-npm run lint       # Run linter
-npm run test:coverage  # Test with coverage
+npm install            # Install dependencies
+npm test               # Run tests
+npm run lint           # Run linter
+npm run test:coverage  # Test with coverage (100% required)
 ```
 
 ## Contributing
@@ -163,7 +207,7 @@ This project uses [Semantic Versioning 2.0](http://semver.org/spec/v2.0.0.html).
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 18+ (or any modern browser)
 - ES modules (`import`/`export`)
 
 ## License

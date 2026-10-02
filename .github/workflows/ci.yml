@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [18, 20, 22, 24]
 
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +35,15 @@ jobs:
       - name: Run tests with coverage
         if: matrix.node-version != 18
         run: npm run test:coverage
+
+      - name: CLI smoke test
+        run: |
+          node bin/capstring.js --version
+          test "$(echo 'hello world' | node bin/capstring.js title)" = "Hello World"
+          test "$(node bin/capstring.js kebab 'XMLHttpRequest')" = "xml-http-request"
+
+      - name: Verify package contents
+        run: npm pack --dry-run
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

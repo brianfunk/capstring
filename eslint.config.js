@@ -4,11 +4,14 @@ export default [
   js.configs.recommended,
   {
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 2023,
       sourceType: 'module',
       globals: {
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        Intl: 'readonly',
+        TextEncoder: 'readonly',
+        URL: 'readonly'
       }
     },
     rules: {

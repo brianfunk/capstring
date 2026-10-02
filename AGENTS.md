@@ -2,57 +2,66 @@
 
 ## Overview
 
-`capstring` is a lightweight JavaScript library for text capitalization and transformation. Zero dependencies, 24+ styles.
+`capstring` is a lightweight JavaScript library for text capitalization and transformation.
+Zero dependencies, 37 styles, Unicode and emoji safe, ships a CLI and TypeScript types.
 
 ## Quick Start
 
 ```javascript
-import capstring from 'capstring';
+import capstring, { capstringAll } from 'capstring';
 
-capstring('hello world', 'title');    // 'Hello World'
-capstring('hello world', 'camel');    // 'helloWorld'
-capstring('hello world', 'kebab');    // 'hello-world'
-capstring('hello world', 'constant'); // 'HELLO_WORLD'
+capstring('hello world', 'title');     // 'Hello World'
+capstring('XMLHttpRequest', 'kebab');  // 'xml-http-request'
+capstring('Crème Brûlée', 'slug');     // 'creme-brulee'
+capstringAll('hi').upper;              // 'HI'
+```
+
+```bash
+npx capstring kebab "Hello World"      # hello-world
+echo hi | npx capstring --all          # every style
 ```
 
 ## API
 
-### Main Function
-
 ```javascript
-capstring(str, style)
+capstring(str, style = 'same', { strict = false } = {})
 ```
 
 - `str` - String to transform
 - `style` - Style name (default: 'same')
-- Returns: Transformed string, or `false` if input invalid
-
-### Helper Functions
+- `strict` - Throw `TypeError` / `RangeError` instead of returning `false` / the input
+- Returns: Transformed string; `''` for empty input; `false` if `str` is not a string
 
 ```javascript
-import { getStyles, isValidStyle, STYLES } from 'capstring';
+import { capstringAll, getStyles, isValidStyle, STYLES, CATEGORIES } from 'capstring';
 
-getStyles();           // ['same', 'none', 'proper', ...]
-isValidStyle('kebab'); // true
-STYLES;                // Frozen array of all style names
+capstringAll('hi');     // { same: 'hi', none: '', ... } in STYLES order
+getStyles();            // fresh copy of STYLES
+isValidStyle('kebab');  // true
+STYLES;                 // frozen array of all 37 style names
+CATEGORIES;             // frozen { case, code, fun, encoding, art }
 ```
 
-## All 24 Styles
+## All 37 Styles
 
 | Category | Styles |
 |----------|--------|
-| Case | same, none, proper, title, sentence, upper, lower, swap |
-| Code | camel, pascal, snake, kebab, slug, constant, python, dot, path |
-| Fun | leet, reverse, sponge, mock, alternate, crazy, random |
+| case | same, none, proper, title, sentence, upper, lower, swap |
+| code | camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym |
+| fun | reverse, sponge, mock, alternate, crazy, random, clap, piglatin |
+| encoding | leet, rot13, morse, binary |
+| art | flip, smallcaps, bubble, wide, strike |
+
+## Files
+
+- `index.js` - the whole library. Must stay browser-safe: no `node:` imports, no `process`.
+- `cli.js` - CLI logic as `main(argv, io)`; `bin/capstring.js` is the executable shim.
+- `index.d.ts` - hand-written types. `test/types.test.js` fails if the `Style` union drifts from `STYLES`.
 
 ## Testing
 
 ```bash
 npm test              # Run tests
 npm run lint          # Run linter
-npm run test:coverage # Coverage report
+npm run test:coverage # Coverage report (100% thresholds enforced)
 ```
-
-## Related
-
-- **cAPIta** - REST API for capstring (https://github.com/brianfunk/cAPIta)

@@ -1,20 +1,36 @@
 {
   "name": "capstring",
-  "version": "1.0.0",
-  "description": "CaPiTaLiZe StRiNgS in 24+ ways!",
+  "version": "1.1.0",
+  "description": "CaPiTaLiZe StRiNgS in 37 ways! Case conversion, code conventions, and fun text styles. Zero deps, Unicode safe.",
   "type": "module",
   "main": "index.js",
+  "types": "./index.d.ts",
+  "bin": {
+    "capstring": "./bin/capstring.js"
+  },
   "exports": {
     ".": {
-      "import": "./index.js"
-    }
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "cli.js",
+    "bin/",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --format stylish",
-    "lint:report": "eslint . --format html -o coverage/lint-report.html"
+    "lint:report": "eslint . --format html -o coverage/lint-report.html",
+    "prepublishOnly": "npm run lint && npm run test:coverage"
   },
   "repository": {
     "type": "git",
@@ -33,18 +49,40 @@
     "kebab",
     "title",
     "transform",
-    "text"
+    "text",
+    "slug",
+    "slugify",
+    "title-case",
+    "sentence-case",
+    "constant-case",
+    "leet",
+    "sponge",
+    "mock",
+    "upside-down",
+    "flip",
+    "rot13",
+    "morse",
+    "binary",
+    "bubble",
+    "fullwidth",
+    "small-caps",
+    "strikethrough",
+    "pig-latin",
+    "cli",
+    "typescript",
+    "unicode"
   ],
   "author": "Brian Funk",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/brianfunk/capstring/issues"
   },
-  "homepage": "https://github.com/brianfunk/capstring#readme",
+  "homepage": "https://capstring.netlify.app",
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.17.0",
     "vitest": "^4.0.18"
