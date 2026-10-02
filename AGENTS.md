@@ -58,6 +58,12 @@ CATEGORIES;             // frozen { case, code, fun, encoding, art }
 - `cli.js` - CLI logic as `main(argv, io)`; `bin/capstring.js` is the executable shim.
 - `index.d.ts` - hand-written types. `test/types.test.js` fails if the `Style` union drifts from `STYLES`.
 
+## Website and API
+
+- `web/` - static site, imports `./capstring.js` (copied from `index.js` at Netlify build time)
+- `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api`
+- `npm run dev` runs both locally on http://localhost:8888
+
 ## Testing
 
 ```bash

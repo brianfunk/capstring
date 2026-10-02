@@ -30,7 +30,9 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --format stylish",
     "lint:report": "eslint . --format html -o coverage/lint-report.html",
-    "prepublishOnly": "npm run lint && npm run test:coverage"
+    "prepublishOnly": "npm run lint && npm run test:coverage",
+    "web:prep": "cp index.js web/capstring.js",
+    "dev": "npm run web:prep && netlify dev"
   },
   "repository": {
     "type": "git",

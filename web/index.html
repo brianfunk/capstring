@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>capstring</title>
+  <meta name="description" content="CaPiTaLiZe StRiNgS in 37 ways. Case, code conventions, and ridiculous fun styles. Library, CLI, and HTTP API.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔠</text></svg>">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <h1><span class="wordmark" aria-label="capstring">cApStRiNg</span></h1>
+    <p class="tagline">CaPiTaLiZe StRiNgS in <span id="count">37</span> ways. Type, click to copy.</p>
+    <nav aria-label="Links">
+      <a href="https://github.com/brianfunk/capstring">GitHub</a>
+      <a href="https://www.npmjs.com/package/capstring">npm</a>
+      <a href="#api">API</a>
+    </nav>
+  </header>
+
+  <main>
+    <label class="sr-only" for="t">Text to transform</label>
+    <textarea id="t" rows="2" autofocus spellcheck="false" placeholder="hello world"></textarea>
+
+    <p class="curl">
+      <code id="curl"></code>
+      <button id="copy-curl" type="button">Copy curl</button>
+    </p>
+
+    <div id="results"></div>
+
+    <section id="api">
+      <h2>HTTP API</h2>
+      <p>Free, no key, CORS enabled. Text up to 2,000 characters. Responses are JSON unless you add <code>?format=txt</code>.</p>
+      <table>
+        <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/styles</code></td><td>style names and categories</td></tr>
+          <tr><td><code>GET /api/:style/:text</code></td><td><code>{ input, style, output }</code></td></tr>
+          <tr><td><code>GET /api/all/:text</code></td><td>every style</td></tr>
+          <tr><td><code>GET /api/chain/:styles/:text</code></td><td>styles applied in order, e.g. <code>upper+reverse</code></td></tr>
+          <tr><td><code>POST /api/batch</code></td><td>body <code>{ "style": "kebab", "texts": ["a", "b"] }</code></td></tr>
+        </tbody>
+      </table>
+      <pre><code>curl https://capstring.netlify.app/api/title/hello%20world
+curl "https://capstring.netlify.app/api/all/hello%20world?format=txt"
+curl -X POST https://capstring.netlify.app/api/batch \
+  -H "Content-Type: application/json" \
+  -d '{"style":"slug","texts":["Crème Brûlée","Hello World"]}'</code></pre>
+      <p>Errors look like <code>{ "error": { "code": "unknown_style", "message": "..." } }</code>. Use <code>?text=</code> instead of the path when your text contains slashes.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>MIT · <a href="https://github.com/brianfunk/capstring">brianfunk/capstring</a> · <code>npm i capstring</code> · <code>npx capstring --all "hi"</code></p>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

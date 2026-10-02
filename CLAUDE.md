@@ -11,6 +11,7 @@ npm install        # Install dev dependencies
 npm test           # Run Vitest tests
 npm run lint       # Run ESLint
 npm run test:coverage  # Run tests with coverage report
+npm run dev        # Netlify Dev: website + API on http://localhost:8888
 ```
 
 ## Code Style
@@ -29,6 +30,9 @@ Single-file library plus a thin CLI:
   - `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
 - `cli.js` - `main(argv, io)` with injected I/O so it is unit-testable; `bin/capstring.js` is the shim
 - `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
+- `web/` - static site (index.html, style.css, app.js), no build step; imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
+- `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects
+- `netlify.toml` - publish `web/`, production branch `master`, branch deploys for `dev`
 
 ## Supported Styles (37 total)
 
@@ -50,9 +54,13 @@ Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 6. Preserve the ASCII art header
 7. Verify `npm pack --dry-run` still lists only the intended files
 
+## Deployment
+
+Netlify site `capstring` (Brian Funk team) deploys from git: `master` is production, `dev` is a branch deploy, PRs get previews. No deploy step in GitHub Actions.
+
 ## Related Projects
 
-- **cAPIta** - REST API that wraps capstring (separate repo)
+- **cAPIta** - archived. The former standalone REST API; `capita-api.netlify.app` redirects here.
 
 ---
 

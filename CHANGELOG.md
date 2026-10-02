@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Website**: [capstring.netlify.app](https://capstring.netlify.app) - live preview of every style, click to copy, shareable URLs
+- **HTTP API**: `/api/:style/:text`, `/api/all`, `/api/chain`, `/api/styles`, `POST /api/batch` as a single Netlify Function (replaces the archived cAPIta project)
 - **8 new styles** (37 total): `smallcaps`, `bubble`, `wide`, `strike`, `clap`, `morse`, `binary`, `piglatin`
 - **CLI**: `npx capstring <style> [text]`, `--all`, `--list`, `--json`, `--help`, `--version`; reads stdin when no text is given
 - **TypeScript declarations** (`index.d.ts`) with a `Style` union type for autocomplete

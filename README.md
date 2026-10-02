@@ -1,6 +1,7 @@
 [![capstring](https://img.shields.io/badge/capstring-CaPiTaLiZe%20StRiNgS!-b5d4ff.svg)](https://github.com/brianfunk/capstring)
 [![npm version](https://img.shields.io/npm/v/capstring.svg)](https://www.npmjs.com/package/capstring)
 [![npm downloads](https://img.shields.io/npm/dm/capstring.svg)](https://www.npmjs.com/package/capstring)
+[![Website](https://img.shields.io/badge/web-capstring.netlify.app-b5d4ff.svg)](https://capstring.netlify.app)
 [![CI](https://github.com/brianfunk/capstring/actions/workflows/ci.yml/badge.svg)](https://github.com/brianfunk/capstring/actions/workflows/ci.yml)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badge/)
 [![Semver](https://img.shields.io/badge/SemVer-2.0-blue.svg)](http://semver.org/spec/v2.0.0.html)
@@ -23,6 +24,10 @@ ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 - **CLI** - `npx capstring kebab "Hello World"`
 - **TypeScript types** - autocomplete for every style name
 - **100% test coverage**
+
+## Try it online
+
+**[capstring.netlify.app](https://capstring.netlify.app)** - type anything, see all 37 styles, click to copy.
 
 ## Installation
 
@@ -174,6 +179,40 @@ const style: Style = 'kebab';   // autocompletes all 37 names
 capstring('Hello', style);      // string
 ```
 
+## HTTP API
+
+Free, no key, CORS enabled, hosted at `https://capstring.netlify.app/api`.
+
+```bash
+curl https://capstring.netlify.app/api/title/hello%20world
+# {"input":"hello world","style":"title","output":"Hello World"}
+
+curl "https://capstring.netlify.app/api/all/hello%20world?format=txt"
+# same	hello world
+# none
+# ...
+
+curl https://capstring.netlify.app/api/chain/upper+reverse/hello
+# {"input":"hello","styles":["upper","reverse"],"output":"OLLEH"}
+
+curl -X POST https://capstring.netlify.app/api/batch \
+  -H "Content-Type: application/json" \
+  -d '{"style":"slug","texts":["Crème Brûlée","Hello World"]}'
+```
+
+| Endpoint | Returns |
+|----------|---------|
+| `GET /api/styles` | style names and categories |
+| `GET /api/:style/:text` | `{ input, style, output }` |
+| `GET /api/all/:text` | every style |
+| `GET /api/chain/:styles/:text` | styles applied in order (`+` or `,` separated, max 10) |
+| `POST /api/batch` | `{ style, texts[] }` (max 100 texts) |
+
+Text is limited to 2,000 characters. Add `?format=txt` for plain text, `?pretty=1` for indented
+JSON, or `?text=` to pass text with slashes. Errors are `{ "error": { "code", "message" } }`.
+
+The previous standalone API, cAPIta, is archived and redirects here.
+
 ## Behavior notes
 
 - **Unicode**: every style iterates code points, and `reverse` / `flip` iterate grapheme clusters, so
@@ -195,7 +234,11 @@ npm install            # Install dependencies
 npm test               # Run tests
 npm run lint           # Run linter
 npm run test:coverage  # Test with coverage (100% required)
+npm run dev            # Netlify Dev: site + API at http://localhost:8888
 ```
+
+The website lives in `web/` (plain HTML/CSS/JS, no build step) and the API in
+`netlify/functions/api.js`. Both import `index.js` directly.
 
 ## Contributing
 

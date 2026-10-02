@@ -1,0 +1,29 @@
+[build]
+  publish = "web"
+  command = "cp index.js web/capstring.js"
+  functions = "netlify/functions"
+  # Skip the build when nothing deployable changed (docs-only commits)
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.js web netlify netlify.toml package.json"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+[dev]
+  publish = "web"
+  framework = "#static"
+  port = 8888
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+[[headers]]
+  for = "/capstring.js"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
