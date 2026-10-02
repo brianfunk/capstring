@@ -81,12 +81,14 @@
   },
   "homepage": "https://capstring.netlify.app",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.17.0",
-    "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.17.0",
-    "vitest": "^4.0.18"
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^5.0.3",
+    "dictionary-en": "^4.0.0",
+    "eslint": "^10.11.0",
+    "nspell": "^2.1.5",
+    "vitest": "^5.0.3"
   }
 }

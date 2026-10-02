@@ -16,6 +16,7 @@ npm run dev        # Netlify Dev: website + API on http://localhost:8888
 
 ## Code Style
 
+- Node 22.12+ (CI runs 22 and 24; vitest 5 needs 22.12)
 - ES2022+ syntax (const/let, arrow functions, template literals)
 - ESM modules only (`import`/`export`)
 - Full JSDoc documentation
@@ -31,7 +32,7 @@ Single-file library plus a thin CLI:
 - `cli.js` - `main(argv, io)` with injected I/O so it is unit-testable; `bin/capstring.js` is the shim
 - `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
 - `web/` - static site (index.html, style.css, app.js), no build step; imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
-- `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects
+- `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects. `nspell` and `dictionary-en` (spellcheck) are **devDependencies** on purpose: esbuild bundles them into the function and the npm package stays zero-dependency. `dictionary-en` is listed as external + included_files in `netlify.toml` because it reads its `.aff`/`.dic` files by path.
 - `netlify.toml` - publish `web/`, production branch `master`, branch deploys for `dev`
 
 ## Supported Styles (37 total)

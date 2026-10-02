@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22, 24]
+        node-version: [22, 24]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,12 +27,7 @@ jobs:
       - name: Run linter
         run: npm run lint
 
-      - name: Run tests
-        if: matrix.node-version == 18
-        run: npm test
-
       - name: Run tests with coverage
-        if: matrix.node-version != 18
         run: npm run test:coverage
 
       - name: CLI smoke test
@@ -46,7 +41,7 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: matrix.node-version == 20
+        if: matrix.node-version == 22
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false

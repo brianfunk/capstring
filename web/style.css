@@ -84,8 +84,10 @@ h2 {
 }
 
 ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+li { display: flex; gap: 6px; align-items: stretch; }
 .row {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: 7.5em 1fr;
   gap: 12px;
@@ -99,6 +101,28 @@ ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-temp
 .row .out { font-family: var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; min-height: 1.4em; }
 .row.copied { background: var(--accent-soft); border-color: var(--accent); }
 .row.selected { border-color: var(--accent); }
+
+.add {
+  flex: 0 0 auto;
+  width: 2.2em;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+.add:hover { color: var(--accent); }
+
+.chain {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--card);
+}
+.chain-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chain-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.chain-list { display: inline-flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.chip { border-radius: 999px; padding: 2px 10px; font-family: var(--mono); font-size: 0.85rem; }
+.chain-out { display: block; margin-top: 10px; font-family: var(--mono); font-size: 1.1rem; overflow-wrap: anywhere; white-space: pre-wrap; }
 
 #api { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); }
 #api h2 { font-size: 1.3rem; text-transform: none; letter-spacing: 0; color: var(--fg); }

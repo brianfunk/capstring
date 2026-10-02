@@ -10,6 +10,9 @@
 
 [functions]
   node_bundler = "esbuild"
+  # dictionary-en reads its .aff/.dic files by path at runtime, so ship it unbundled
+  external_node_modules = ["dictionary-en"]
+  included_files = ["node_modules/dictionary-en/**"]
 
 [dev]
   publish = "web"

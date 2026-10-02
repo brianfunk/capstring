@@ -61,7 +61,7 @@ CATEGORIES;             // frozen { case, code, fun, encoding, art }
 ## Website and API
 
 - `web/` - static site, imports `./capstring.js` (copied from `index.js` at Netlify build time)
-- `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api`
+- `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api` (transform, all, chain, batch, badge, lorem, spell)
 - `npm run dev` runs both locally on http://localhost:8888
 
 ## Testing

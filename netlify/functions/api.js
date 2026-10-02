@@ -13,6 +13,9 @@
  *   GET  /api/styles                 style names and categories
  *   GET  /api/all/:text              every style
  *   GET  /api/chain/:styles/:text    apply styles in sequence (`upper+reverse` or `upper,reverse`)
+ *   GET  /api/badge/:style/:text     shields-style SVG badge
+ *   GET  /api/lorem/:count           lorem ipsum words, optionally `?style=`
+ *   GET  /api/spell/:text            spell-corrected text, optionally `?style=`
  *   GET  /api/:style/:text           one style
  *   POST /api/batch                  { style, texts[] }
  *
@@ -29,7 +32,18 @@ const SITE = 'https://capstring.netlify.app';
 const MAX_TEXT = 2000;
 const MAX_BATCH = 100;
 const MAX_CHAIN = 10;
-const ENDPOINTS = ['GET /api/styles', 'GET /api/all/:text', 'GET /api/chain/:styles/:text', 'GET /api/:style/:text', 'POST /api/batch'];
+const MAX_LOREM = 1000;
+const DEFAULT_LOREM = 50;
+const ENDPOINTS = [
+  'GET /api/styles',
+  'GET /api/all/:text',
+  'GET /api/chain/:styles/:text',
+  'GET /api/badge/:style/:text',
+  'GET /api/lorem/:count?style=',
+  'GET /api/spell/:text?style=',
+  'GET /api/:style/:text',
+  'POST /api/batch'
+];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -37,6 +51,9 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Max-Age': '86400'
 };
+
+/** Lorem Ipsum base text */
+const LOREM_WORDS = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
 
 /** Thrown by handlers to produce a structured error response */
 class ApiError extends Error {
@@ -113,6 +130,13 @@ const getStyle = (style) => {
 };
 
 /**
+ * Read an optional `?style=` query param
+ * @param {URLSearchParams} query - Query params
+ * @returns {string|null} Validated style or null
+ */
+const optionalStyle = (query) => (query.has('style') ? getStyle(query.get('style')) : null);
+
+/**
  * Validate the output format
  * @param {URLSearchParams} query - Query params
  * @returns {'json'|'txt'} Format
@@ -137,6 +161,95 @@ const requireMethod = (req, allowed) => {
 };
 
 /**
+ * Reject trailing path segments on endpoints that take none
+ * @param {string[]} rest - Remaining segments
+ */
+const noExtraSegments = (rest) => {
+  if (rest.length) throw new ApiError(404, 'not_found', 'No such endpoint.');
+};
+
+// ========== Badge ==========
+
+/**
+ * Escape text for safe inclusion in SVG/XML
+ * @param {string} str - Raw text
+ * @returns {string} Escaped text
+ */
+const escapeXml = (str) => str.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+/**
+ * Render a shields.io-style flat SVG badge (no network call)
+ * @param {string} label - Left-hand label
+ * @param {string} value - Right-hand value
+ * @returns {string} SVG markup
+ */
+const badgeSvg = (label, value) => {
+  const charWidth = 6.5;
+  const padding = 10;
+  const labelWidth = Math.round(Array.from(label).length * charWidth + padding);
+  const valueWidth = Math.round(Array.from(value || ' ').length * charWidth + padding);
+  const width = labelWidth + valueWidth;
+  const safeLabel = escapeXml(label);
+  const safeValue = escapeXml(value);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="20" role="img" aria-label="${safeLabel}: ${safeValue}">
+  <title>${safeLabel}: ${safeValue}</title>
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <clipPath id="r"><rect width="${width}" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="${labelWidth}" height="20" fill="#555"/>
+    <rect x="${labelWidth}" width="${valueWidth}" height="20" fill="#b5d4ff"/>
+    <rect width="${width}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+    <text x="${labelWidth / 2}" y="15" fill="#010101" fill-opacity=".3">${safeLabel}</text>
+    <text x="${labelWidth / 2}" y="14">${safeLabel}</text>
+    <text x="${labelWidth + valueWidth / 2}" y="15" fill="#010101" fill-opacity=".3">${safeValue}</text>
+    <text x="${labelWidth + valueWidth / 2}" y="14" fill="#333">${safeValue}</text>
+  </g>
+</svg>`;
+};
+
+// ========== Spell check ==========
+
+/** @type {Promise<import('nspell').default>|null} */
+let spellCheckerPromise = null;
+
+/**
+ * Lazily load nspell and the English dictionary (only requests to /api/spell pay for it)
+ * @returns {Promise<import('nspell').default>} Spell checker
+ */
+const getSpellChecker = () => {
+  spellCheckerPromise ??= Promise.all([import('nspell'), import('dictionary-en')])
+    .then(([{ default: nspell }, { default: dictionary }]) => nspell(dictionary));
+  return spellCheckerPromise;
+};
+
+/**
+ * Correct misspelled words, preserving whitespace, punctuation, and capitalization
+ * @param {string} text - Input text
+ * @returns {Promise<{ output: string, corrections: { from: string, to: string }[] }>} Result
+ */
+const spellCheck = async (text) => {
+  const checker = await getSpellChecker();
+  const corrections = [];
+  const isCorrect = (word) => [word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]
+    .some((variant) => checker.correct(variant));
+  const output = text.replace(/[A-Za-z]+/g, (word) => {
+    if (isCorrect(word)) return word;
+    const [suggestion] = checker.suggest(word);
+    if (!suggestion) return word;
+    const fixed = word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()
+      ? suggestion[0].toUpperCase() + suggestion.slice(1)
+      : suggestion;
+    corrections.push({ from: word, to: fixed });
+    return fixed;
+  });
+  return { output, corrections };
+};
+
+// ========== Router ==========
+
+/**
  * Route a request
  * @param {Request} req - Request
  * @returns {Promise<Response>} Response
@@ -157,7 +270,7 @@ const route = async (req) => {
 
   if (head === 'styles') {
     requireMethod(req, 'GET');
-    if (rest.length) throw new ApiError(404, 'not_found', 'No such endpoint.');
+    noExtraSegments(rest);
     return respond({ count: STYLES.length, styles: STYLES, categories: CATEGORIES }, { pretty });
   }
 
@@ -183,9 +296,48 @@ const route = async (req) => {
     return out(format === 'txt' ? output : { input: text, styles, output }, { cache: !styles.includes('random') });
   }
 
+  if (head === 'badge') {
+    requireMethod(req, 'GET');
+    const [styleRaw, ...textSegments] = rest;
+    const style = getStyle(styleRaw ?? '');
+    const text = getText(textSegments, query);
+    const label = query.get('label') || style;
+    return new Response(badgeSvg(label, capstring(text, style)), {
+      headers: {
+        ...CORS,
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': style === 'random' ? 'no-store' : 'public, max-age=86400'
+      }
+    });
+  }
+
+  if (head === 'lorem') {
+    requireMethod(req, 'GET');
+    const [countRaw, ...extra] = rest;
+    noExtraSegments(extra);
+    const count = countRaw === undefined ? DEFAULT_LOREM : Number(countRaw);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_LOREM) {
+      throw new ApiError(400, 'invalid_count', `count must be an integer from 1 to ${MAX_LOREM}.`);
+    }
+    const style = optionalStyle(query);
+    const words = Array.from({ length: count }, (_, i) => LOREM_WORDS[i % LOREM_WORDS.length]).join(' ');
+    const output = style ? capstring(words, style) : words;
+    return out(format === 'txt' ? output : { count, style, output }, { cache: style !== 'random' });
+  }
+
+  if (head === 'spell') {
+    requireMethod(req, 'GET');
+    const text = getText(rest, query);
+    const style = optionalStyle(query);
+    const { output: corrected, corrections } = await spellCheck(text);
+    const output = style ? capstring(corrected, style) : corrected;
+    return out(format === 'txt' ? output : { input: text, style, output, corrections }, { cache: style !== 'random' });
+  }
+
   if (head === 'batch') {
     requireMethod(req, 'POST');
-    if (rest.length) throw new ApiError(404, 'not_found', 'No such endpoint.');
+    noExtraSegments(rest);
     if (!/^application\/json\b/i.test(String(req.headers.get('content-type')))) {
       throw new ApiError(415, 'unsupported_media_type', 'Send a JSON body with Content-Type: application/json.');
     }

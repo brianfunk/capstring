@@ -1,18 +1,23 @@
-import { capstringAll, STYLES, CATEGORIES } from './capstring.js';
+import capstring, { capstringAll, STYLES, CATEGORIES } from './capstring.js';
 
 const API = `${location.origin}/api`;
 const LABELS = { case: 'Case', code: 'Code', fun: 'Fun', encoding: 'Encodings', art: 'Unicode Art' };
 const DEFAULT_TEXT = 'hello world';
+const MAX_CHAIN = 10;
 
 const input = document.getElementById('t');
 const results = document.getElementById('results');
 const curl = document.getElementById('curl');
 const toast = document.getElementById('toast');
+const chainBar = document.getElementById('chain');
+const chainList = document.getElementById('chain-list');
+const chainOut = document.getElementById('chain-out');
 const outputs = new Map();
 let selectedStyle = null;
+let chain = [];
 let toastTimer;
 
-/** Build one section per category with a button row per style */
+/** Build one section per category with a copy row and an add-to-chain button per style */
 const buildRows = () => {
   for (const [category, styles] of Object.entries(CATEGORIES)) {
     const section = document.createElement('section');
@@ -32,7 +37,14 @@ const buildRows = () => {
       const out = document.createElement('span');
       out.className = 'out';
       btn.append(name, out);
-      li.append(btn);
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'add';
+      add.dataset.add = style;
+      add.textContent = '+';
+      add.title = `Add ${style} to chain`;
+      add.setAttribute('aria-label', `Add ${style} to chain`);
+      li.append(btn, add);
       ul.append(li);
       outputs.set(style, out);
     }
@@ -45,17 +57,38 @@ const buildRows = () => {
 /** Current text, falling back to the default so the grid is never empty */
 const currentText = () => input.value || DEFAULT_TEXT;
 
-/** The curl command for the selected style (or all styles) */
+/** Output of the current chain applied to the current text */
+const chainResult = () => chain.reduce((acc, s) => capstring(acc, s), currentText());
+
+/** The curl command for the chain, the selected style, or all styles */
 const curlFor = (text) => {
-  const path = selectedStyle ? `${selectedStyle}/${encodeURIComponent(text)}` : `all/${encodeURIComponent(text)}`;
-  return `curl ${API}/${path}`;
+  const encoded = encodeURIComponent(text);
+  if (chain.length) return `curl ${API}/chain/${chain.join('+')}/${encoded}`;
+  if (selectedStyle) return `curl ${API}/${selectedStyle}/${encoded}`;
+  return `curl ${API}/all/${encoded}`;
 };
 
-/** Recompute every output and the curl line */
+/** Render the chain bar */
+const renderChain = () => {
+  chainBar.hidden = chain.length === 0;
+  chainList.replaceChildren(...chain.map((style, i) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.dataset.remove = String(i);
+    chip.textContent = `${style} ×`;
+    chip.setAttribute('aria-label', `Remove ${style} from chain`);
+    return chip;
+  }));
+  chainOut.textContent = chain.length ? chainResult() : '';
+};
+
+/** Recompute every output, the chain, and the curl line */
 const render = () => {
   const text = currentText();
   const all = capstringAll(text);
   for (const [style, el] of outputs) el.textContent = all[style];
+  renderChain();
   curl.textContent = curlFor(text);
 };
 
@@ -79,10 +112,13 @@ const copy = async (text, label) => {
   }
 };
 
-/** Keep the URL shareable: ?t=<text> */
+/** Keep the URL shareable: ?t=<text>&chain=a+b */
 const syncUrl = () => {
-  const url = input.value ? `?t=${encodeURIComponent(input.value)}` : location.pathname;
-  history.replaceState(null, '', url + location.hash);
+  const params = new URLSearchParams();
+  if (input.value) params.set('t', input.value);
+  if (chain.length) params.set('chain', chain.join('+'));
+  const qs = params.toString().replace(/%2B/g, '+');
+  history.replaceState(null, '', (qs ? `?${qs}` : location.pathname) + location.hash);
 };
 
 let renderTimer;
@@ -95,6 +131,17 @@ input.addEventListener('input', () => {
 });
 
 results.addEventListener('click', async (event) => {
+  const add = event.target.closest('.add');
+  if (add) {
+    if (chain.length >= MAX_CHAIN) {
+      showToast(`Chains are limited to ${MAX_CHAIN} styles`);
+      return;
+    }
+    chain.push(add.dataset.add);
+    render();
+    syncUrl();
+    return;
+  }
   const btn = event.target.closest('.row');
   if (!btn) return;
   const style = btn.dataset.style;
@@ -109,9 +156,32 @@ results.addEventListener('click', async (event) => {
   }
 });
 
+chainBar.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-remove]');
+  if (chip) {
+    chain.splice(Number(chip.dataset.remove), 1);
+    render();
+    syncUrl();
+  }
+});
+
+document.getElementById('chain-copy').addEventListener('click', () => copy(chainResult(), `chain: ${chainResult()}`));
+document.getElementById('chain-clear').addEventListener('click', () => {
+  chain = [];
+  render();
+  syncUrl();
+});
 document.getElementById('copy-curl').addEventListener('click', () => copy(curl.textContent, 'curl command'));
 
-const fromUrl = new URLSearchParams(location.search).get('t');
-if (fromUrl) input.value = fromUrl;
+const params = new URLSearchParams(location.search);
+if (params.get('t')) input.value = params.get('t');
+chain = (params.get('chain') ?? '').split(/[+,\s]/).filter((s) => STYLES.includes(s)).slice(0, MAX_CHAIN);
 buildRows();
 render();
+
+fetch(API)
+  .then((res) => res.json())
+  .then(({ version }) => {
+    document.getElementById('version').textContent = `v${version}`;
+  })
+  .catch(() => { /* footer version is decorative */ });

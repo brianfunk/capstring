@@ -31,6 +31,7 @@ describe('GET /api', () => {
     expect(body.name).toBe('capstring');
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(body.endpoints).toContain('POST /api/batch');
+    expect(body.endpoints).toContain('GET /api/spell/:text?style=');
     expect((await json('/api/')).body.name).toBe('capstring');
   });
 
@@ -237,6 +238,100 @@ describe('POST /api/batch', () => {
 
   it('404s extra segments', async () => {
     expect((await post('/api/batch/extra', {})).status).toBe(404);
+  });
+});
+
+describe('GET /api/badge/:style/:text', () => {
+  it('returns an SVG badge', async () => {
+    const res = await call('/api/badge/sponge/hello%20world');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    const svg = await res.text();
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
+    expect(svg).toContain('>sponge<');
+    expect(svg).toContain('>HeLlO WoRlD<');
+  });
+
+  it('supports ?label= and escapes XML', async () => {
+    const svg = await (await call('/api/badge/same/a%3Cb%26c?label=x%22y')).text();
+    expect(svg).toContain('>x&quot;y<');
+    expect(svg).toContain('>a&lt;b&amp;c<');
+    expect(svg).not.toContain('<b&');
+  });
+
+  it('handles empty output and random', async () => {
+    expect((await call('/api/badge/none/hi')).status).toBe(200);
+    expect((await call('/api/badge/random/hi')).headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('validates style and text', async () => {
+    expect((await json('/api/badge/nope/hi')).body.error.code).toBe('unknown_style');
+    expect((await json('/api/badge')).body.error.code).toBe('unknown_style');
+    expect((await json('/api/badge/upper')).body.error.code).toBe('missing_text');
+  });
+});
+
+describe('GET /api/lorem/:count', () => {
+  it('defaults to 50 words', async () => {
+    const { res, body } = await json('/api/lorem');
+    expect(res.status).toBe(200);
+    expect(body.count).toBe(50);
+    expect(body.style).toBeNull();
+    expect(body.output.split(' ')).toHaveLength(50);
+    expect(body.output.startsWith('lorem ipsum dolor')).toBe(true);
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
+  });
+
+  it('honours count, ?style= and format=txt', async () => {
+    const { body } = await json('/api/lorem/3?style=title');
+    expect(body).toEqual({ count: 3, style: 'title', output: 'Lorem Ipsum Dolor' });
+    expect(await (await call('/api/lorem/2?format=txt')).text()).toBe('lorem ipsum');
+    expect((await json('/api/lorem/1000')).body.output.split(' ')).toHaveLength(1000);
+    expect((await call('/api/lorem/2?style=random')).headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('validates count, style and path', async () => {
+    for (const c of ['0', '1001', '2.5', 'abc', '-1']) {
+      expect((await json(`/api/lorem/${c}`)).body.error.code).toBe('invalid_count');
+    }
+    expect((await json('/api/lorem/3?style=nope')).body.error.code).toBe('unknown_style');
+    expect((await json('/api/lorem/3/extra')).body.error.code).toBe('not_found');
+  });
+});
+
+describe('GET /api/spell/:text', () => {
+  it('corrects misspellings and lists corrections', async () => {
+    const { res, body } = await json('/api/spell/helo%20speling');
+    expect(res.status).toBe(200);
+    expect(body.input).toBe('helo speling');
+    expect(body.output).toBe('hello spelling');
+    expect(body.corrections).toEqual([{ from: 'helo', to: 'hello' }, { from: 'speling', to: 'spelling' }]);
+    expect(body.style).toBeNull();
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
+  });
+
+  it('preserves capitalization, punctuation, and correct words', async () => {
+    const { body } = await json('/api/spell/Helo,%20world!%20Recieve%20ok%20NASA.');
+    expect(body.output).toBe('Hello, world! Receive ok NASA.');
+    expect(body.corrections).toEqual([{ from: 'Helo', to: 'Hello' }, { from: 'Recieve', to: 'Receive' }]);
+  });
+
+  it('leaves unsuggestable words alone', async () => {
+    const { body } = await json('/api/spell/xqzjvwpk%20ok');
+    expect(body.output).toBe('xqzjvwpk ok');
+    expect(body.corrections).toEqual([]);
+  });
+
+  it('applies ?style= after correcting and supports txt', async () => {
+    expect((await json('/api/spell/helo%20speling?style=title')).body.output).toBe('Hello Spelling');
+    expect(await (await call('/api/spell/helo?format=txt')).text()).toBe('hello');
+    expect((await call('/api/spell/helo?style=random')).headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('validates text', async () => {
+    expect((await json('/api/spell')).body.error.code).toBe('missing_text');
   });
 });
 

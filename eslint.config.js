@@ -33,6 +33,7 @@ export default [
         navigator: 'readonly',
         location: 'readonly',
         history: 'readonly',
+        fetch: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly'
       }

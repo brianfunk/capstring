@@ -207,6 +207,15 @@ curl -X POST https://capstring.netlify.app/api/batch \
 | `GET /api/all/:text` | every style |
 | `GET /api/chain/:styles/:text` | styles applied in order (`+` or `,` separated, max 10) |
 | `POST /api/batch` | `{ style, texts[] }` (max 100 texts) |
+| `GET /api/badge/:style/:text` | shields-style SVG badge, `?label=` to override the left side |
+| `GET /api/lorem/:count` | lorem ipsum words (1 to 1000), optional `?style=` |
+| `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=` |
+
+[![capstring badge](https://capstring.netlify.app/api/badge/sponge/hello%20world?label=capstring)](https://capstring.netlify.app)
+
+```markdown
+![sponge](https://capstring.netlify.app/api/badge/sponge/hello%20world)
+```
 
 Text is limited to 2,000 characters. Add `?format=txt` for plain text, `?pretty=1` for indented
 JSON, or `?text=` to pass text with slashes. Errors are `{ "error": { "code", "message" } }`.
@@ -238,7 +247,9 @@ npm run dev            # Netlify Dev: site + API at http://localhost:8888
 ```
 
 The website lives in `web/` (plain HTML/CSS/JS, no build step) and the API in
-`netlify/functions/api.js`. Both import `index.js` directly.
+`netlify/functions/api.js`. Both import `index.js` directly. The spellcheck endpoint's
+dependencies (`nspell`, `dictionary-en`) are devDependencies bundled into the function, so the
+npm package itself stays zero-dependency.
 
 ## Contributing
 
@@ -250,7 +261,7 @@ This project uses [Semantic Versioning 2.0](http://semver.org/spec/v2.0.0.html).
 
 ## Requirements
 
-- Node.js 18+ (or any modern browser)
+- Node.js 22.12+ (or any modern browser)
 - ES modules (`import`/`export`)
 
 ## License

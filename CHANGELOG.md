@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Website**: [capstring.netlify.app](https://capstring.netlify.app) - live preview of every style, click to copy, shareable URLs
-- **HTTP API**: `/api/:style/:text`, `/api/all`, `/api/chain`, `/api/styles`, `POST /api/batch` as a single Netlify Function (replaces the archived cAPIta project)
+- **HTTP API**: `/api/:style/:text`, `/api/all`, `/api/chain`, `/api/styles`, `POST /api/batch`, plus `/api/badge` (SVG), `/api/lorem`, and `/api/spell` ported from cAPIta, as a single Netlify Function (replaces the archived cAPIta project)
+- Website chain builder: press `+` on any row to compose a chain, shareable via `?chain=upper+reverse`
 - **8 new styles** (37 total): `smallcaps`, `bubble`, `wide`, `strike`, `clap`, `morse`, `binary`, `piglatin`
 - **CLI**: `npx capstring <style> [text]`, `--all`, `--list`, `--json`, `--help`, `--version`; reads stdin when no text is given
 - **TypeScript declarations** (`index.d.ts`) with a `Style` union type for autocomplete
@@ -19,10 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `{ strict: true }` option - throw `TypeError` / `RangeError` instead of returning `false` / the input
 - Smart tokenizer for code styles: splits on camelCase boundaries, `_`, `-`, `.`, `/` and punctuation (`XMLHttpRequest` → `xml-http-request`)
 - `files` whitelist, `sideEffects: false`, `./package.json` export, `prepublishOnly` gate
-- 100% coverage thresholds enforced; Node 24 added to CI; CLI smoke test in CI
+- 100% coverage thresholds enforced; CI matrix is Node 22 and 24; CLI smoke test in CI
 
 ### Behavior changes
 
+- **Node.js 22.12+ required** (18 and 20 are end-of-life; the test toolchain no longer supports them)
 - Empty string input now returns `''` instead of `false` (non-string input still returns `false`)
 - `slug` is now a real slugifier: diacritics folded, punctuation removed, ASCII only (`Crème Brûlée & Co.` → `creme-brulee-co`). It no longer equals `kebab`, which keeps Unicode letters
 - All code styles tokenize camelCase and separator input (`helloWorld` → `hello_world`, was `helloworld`)
