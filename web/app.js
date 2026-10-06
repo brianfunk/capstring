@@ -175,7 +175,10 @@ chainBar.addEventListener('click', (event) => {
   }
 });
 
-document.getElementById('chain-copy').addEventListener('click', () => copy(chainResult(), `chain: ${chainResult()}`));
+document.getElementById('chain-copy').addEventListener('click', () => {
+  const value = chainOut.textContent; // copy exactly what is shown (random would differ on recompute)
+  copy(value, `chain: ${value}`);
+});
 document.getElementById('chain-clear').addEventListener('click', () => {
   chain = [];
   render();

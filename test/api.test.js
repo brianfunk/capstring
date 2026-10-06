@@ -167,6 +167,13 @@ describe('GET /api/all/:text', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('format=txt escapes line breaks inside results', async () => {
+    const text = await (await call('/api/all/a%0Ab?format=txt')).text();
+    const lines = text.split('\n');
+    expect(lines).toHaveLength(STYLES.length);
+    expect(lines[0]).toBe('same\ta\\nb');
+  });
+
   it('format=txt gives one tab-separated line per style', async () => {
     const text = await (await call('/api/all/hi?format=txt')).text();
     const lines = text.split('\n');
@@ -228,6 +235,8 @@ describe('POST /api/batch', () => {
     const res = await post('/api/batch?format=txt', { style: 'upper', texts: ['a', 7, 'b'] });
     expect(res.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
     expect(await res.text()).toBe('A\n\nB');
+    const multi = await post('/api/batch?format=txt', { style: 'same', texts: ['a\nb', 'c'] });
+    expect(await multi.text()).toBe('a\\nb\nc');
   });
 
   it('reports per-item problems inline', async () => {

@@ -62,6 +62,13 @@ const CORS = {
 /** Lorem Ipsum base text */
 const LOREM_WORDS = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
 
+/**
+ * Escape CR/LF so a value fits on one line of a newline-delimited text response
+ * @param {string} value - Raw value
+ * @returns {string} Single-line value
+ */
+const oneLine = (value) => value.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+
 /** Thrown by handlers to produce a structured error response */
 class ApiError extends Error {
   /**
@@ -305,7 +312,7 @@ const route = async (req) => {
     const text = getText(rest, query);
     const results = capstringAll(text);
     const body = format === 'txt'
-      ? STYLES.map((s) => `${s}\t${results[s]}`).join('\n')
+      ? STYLES.map((s) => `${s}\t${oneLine(results[s])}`).join('\n')
       : { input: text, count: STYLES.length, results };
     return out(body, { cache: false });
   }
@@ -391,7 +398,7 @@ const route = async (req) => {
       return { input, output: capstring(input, style) };
     });
     const payload = format === 'txt'
-      ? results.map((r) => r.output ?? '').join('\n')
+      ? results.map((r) => oneLine(r.output ?? '')).join('\n')
       : { style, count: results.length, results };
     return out(payload, { cache: false });
   }
