@@ -311,7 +311,9 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
   }
   if (str === '') return '';
 
-  const words = toWords(str);
+  // Only the code styles tokenize, so do it lazily (capstringAll calls this 37 times per string)
+  let tokens;
+  const words = () => (tokens ??= toWords(str));
 
   switch (style) {
     // ========== Case Styles ==========
@@ -354,19 +356,19 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'camel':
       // camelCase
-      return words.map((word, i) => (i === 0 ? word : capitalize(word))).join('');
+      return words().map((word, i) => (i === 0 ? word : capitalize(word))).join('');
 
     case 'pascal':
       // PascalCase
-      return words.map(capitalize).join('');
+      return words().map(capitalize).join('');
 
     case 'snake':
       // snake_case
-      return words.join('_');
+      return words().join('_');
 
     case 'kebab':
       // kebab-case (Unicode letters preserved)
-      return words.join('-');
+      return words().join('-');
 
     case 'slug':
       // url-slug (ASCII only, diacritics folded)
@@ -375,27 +377,27 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
     case 'constant':
     case 'python':
       // CONSTANT_CASE (python is a historical alias)
-      return words.join('_').toUpperCase();
+      return words().join('_').toUpperCase();
 
     case 'dot':
       // dot.case
-      return words.join('.');
+      return words().join('.');
 
     case 'path':
       // path/case
-      return words.join('/');
+      return words().join('/');
 
     case 'train':
       // Train-Case
-      return words.map(capitalize).join('-');
+      return words().map(capitalize).join('-');
 
     case 'hashtag':
       // #HashTag
-      return words.length ? '#' + words.map(capitalize).join('') : '';
+      return words().length ? '#' + words().map(capitalize).join('') : '';
 
     case 'acronym':
       // ASAP - first letter of each word, uppercase
-      return words.map((word) => chars(word)[0]).join('').toUpperCase();
+      return words().map((word) => chars(word)[0]).join('').toUpperCase();
 
     // ========== Fun Styles ==========
 
