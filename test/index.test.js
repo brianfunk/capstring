@@ -87,6 +87,7 @@ describe('capstring', () => {
       expect(capstring('hello!  double space', 'sentence')).toBe('Hello!  Double space');
       expect(capstring('wait... really', 'sentence')).toBe('Wait... Really');
       expect(capstring('"hello." she said', 'sentence')).toBe('"Hello." She said');
+      expect(capstring('hello. "world" (yes)! [ok]', 'sentence')).toBe('Hello. "World" (yes)! [Ok]');
     });
 
     it('sentence - leaves decimals and abbreviations without spaces alone', () => {
@@ -126,6 +127,7 @@ describe('capstring', () => {
       ['version 2.0 beta', 'version 2 0 beta'],
       ["don't stop", 'dont stop'],
       ['Crème Brûlée', 'crème brûlée'],
+      ['Cre\u0300me Bru\u0302le\u0301e', 'crème brûlée'], // NFD input, marks stay attached
       ['ПриветМир', 'привет мир'],
       ['😀 hi!!', 'hi']
     ];
@@ -171,6 +173,10 @@ describe('capstring', () => {
       expect(capstring('straße', 'slug')).toBe('strasse');
       expect(capstring('ﬁle Æsir Øre', 'slug')).toBe('file-aesir-ore');
       expect(capstring('日本語', 'slug')).toBe('');
+      expect(capstring('helloWorld', 'slug')).toBe('hello-world');
+      expect(capstring('XMLHttpRequest v2', 'slug')).toBe('xml-http-request-v2');
+      expect(capstring("don't", 'slug')).toBe('dont');
+      expect(capstring('Cre\u0300me', 'slug')).toBe('creme');
     });
 
     it('constant - CONSTANT_CASE', () => {
@@ -262,6 +268,7 @@ describe('capstring', () => {
       expect(capstring('string', 'piglatin')).toBe('ingstray');
       expect(capstring('shh', 'piglatin')).toBe('shhay');
       expect(capstring('yes my rhythm', 'piglatin')).toBe('esyay ymay ythmrhay');
+      expect(capstring('squeal Square squid', 'piglatin')).toBe('ealsquay Aresquay idsquay');
       expect(capstring('123 日本', 'piglatin')).toBe('123 日本');
     });
   });
