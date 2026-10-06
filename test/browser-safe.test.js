@@ -19,8 +19,10 @@ describe('index.js stays browser-safe', () => {
     expect(read('web/index.html')).toContain('<script type="module" src="./app.js">');
   });
 
-  it('netlify build copies index.js to web/capstring.js', () => {
-    expect(read('netlify.toml')).toContain('command = "cp index.js web/capstring.js"');
+  it('netlify build copies index.js to web/capstring.js and never skips an uncached deploy', () => {
+    const toml = read('netlify.toml');
+    expect(toml).toContain('command = "cp index.js web/capstring.js"');
+    expect(toml).toMatch(/ignore = "test \\"\$CACHED_COMMIT_REF\\" = \\"\$COMMIT_REF\\" && exit 1;/);
     expect(read('.gitignore')).toContain('web/capstring.js');
   });
 });

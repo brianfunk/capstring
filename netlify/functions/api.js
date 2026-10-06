@@ -238,14 +238,16 @@ const getSpellChecker = () => {
 
 /**
  * Correct misspelled words, preserving whitespace, punctuation, and capitalization.
- * Hunspell's suggest() is expensive (tens of ms per unknown word), so at most
- * MAX_SPELL_SUGGESTIONS words are corrected per request; the rest pass through unchanged.
+ * Hunspell's suggest() is expensive (tens of ms per unknown word), so it is called for at most
+ * MAX_SPELL_SUGGESTIONS unknown words per request, whether or not a suggestion comes back;
+ * the rest pass through unchanged.
  * @param {string} text - Input text
  * @returns {Promise<{ output: string, corrections: { from: string, to: string }[], limited: boolean }>} Result
  */
 const spellCheck = async (text) => {
   const checker = await getSpellChecker();
   const corrections = [];
+  let attempts = 0;
   let limited = false;
   const isCorrect = (word) => {
     const variants = new Set([word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]);
@@ -253,10 +255,11 @@ const spellCheck = async (text) => {
   };
   const output = text.replace(/[A-Za-z]+/g, (word) => {
     if (isCorrect(word)) return word;
-    if (corrections.length >= MAX_SPELL_SUGGESTIONS) {
+    if (attempts >= MAX_SPELL_SUGGESTIONS) {
       limited = true;
       return word;
     }
+    attempts++;
     const [suggestion] = checker.suggest(word);
     if (!suggestion) return word;
     const fixed = word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()

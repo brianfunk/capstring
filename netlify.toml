@@ -3,7 +3,8 @@
   command = "cp index.js web/capstring.js"
   functions = "netlify/functions"
   # Skip the build when nothing deployable changed (docs-only commits)
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.js web netlify netlify.toml package.json"
+  # Netlify sets CACHED_COMMIT_REF == COMMIT_REF on first or cache-cleared deploys; exit 1 forces the build then
+  ignore = "test \"$CACHED_COMMIT_REF\" = \"$COMMIT_REF\" && exit 1; git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- index.js web netlify netlify.toml package.json"
 
 [build.environment]
   NODE_VERSION = "22"

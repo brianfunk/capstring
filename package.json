@@ -32,7 +32,7 @@
     "lint:report": "eslint . --format html -o coverage/lint-report.html",
     "prepublishOnly": "npm run lint && npm run test:coverage",
     "web:prep": "cp index.js web/capstring.js",
-    "dev": "npm run web:prep && netlify dev"
+    "dev": "npm run web:prep && npx --yes netlify-cli dev"
   },
   "repository": {
     "type": "git",

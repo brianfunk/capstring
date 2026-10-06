@@ -60,9 +60,12 @@ const currentText = () => input.value || DEFAULT_TEXT;
 /** Output of the current chain applied to the current text */
 const chainResult = () => chain.reduce((acc, s) => capstring(acc, s), currentText());
 
+/** encodeURIComponent plus the shell metacharacters it leaves alone (' ( ) * !), so the curl line pastes cleanly */
+const shellSafeEncode = (text) => encodeURIComponent(text).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+
 /** The curl command for the chain, the selected style, or all styles */
 const curlFor = (text) => {
-  const encoded = encodeURIComponent(text);
+  const encoded = shellSafeEncode(text);
   if (chain.length) return `curl ${API}/chain/${chain.join('+')}/${encoded}`;
   if (selectedStyle) return `curl ${API}/${selectedStyle}/${encoded}`;
   return `curl ${API}/all/${encoded}`;

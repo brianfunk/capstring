@@ -343,6 +343,14 @@ describe('GET /api/spell/:text', () => {
     expect((await call('/api/spell/helo?style=random')).headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('counts unsuggestable words against the limit too', async () => {
+    const words = Array(55).fill('xqzjvwpk').concat(['helo']);
+    const { body } = await json(`/api/spell/${encodeURIComponent(words.join(' '))}`);
+    expect(body.limited).toBe(true);
+    expect(body.corrections).toEqual([]); // 'helo' came after the budget ran out
+    expect(body.output.endsWith(' helo')).toBe(true);
+  });
+
   it('stops suggesting after 50 misspellings and says so', async () => {
     const words = Array.from({ length: 60 }, (_, i) => `helo${String.fromCharCode(97 + (i % 26))}`);
     const { body } = await json(`/api/spell/${encodeURIComponent(words.join(' '))}`);
