@@ -323,12 +323,14 @@ describe('capstring', () => {
       expect(capstring('Hi 5', 'bubble')).toBe('Ⓗⓘ ⑤');
       expect(capstring('az AZ 09', 'bubble')).toBe('ⓐⓩ ⒶⓏ ⓪⑨');
       expect(capstring('!Ü😀', 'bubble')).toBe('!Ü😀');
+      expect(capstring('1️⃣ a', 'bubble')).toBe('1️⃣ ⓐ'); // keycap stays whole
     });
 
     it('wide - fullwidth', () => {
       expect(capstring('Hi!', 'wide')).toBe('Ｈｉ！');
       expect(capstring('a b', 'wide')).toBe('ａ　ｂ');
       expect(capstring('~Ü😀', 'wide')).toBe('～Ü😀');
+      expect(capstring('#️⃣!', 'wide')).toBe('#️⃣！');
     });
 
     it('strike', () => {

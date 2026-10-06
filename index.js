@@ -201,14 +201,16 @@ const rot13 = (str) => str.replace(/[a-zA-Z]/g, (char) => {
 const flipText = (str) => graphemes(str).reverse().map((g) => FLIP_MAP[g] || g).join('');
 
 /**
- * Shift ASCII characters by a code point offset, used by bubble and fullwidth styles
+ * Shift single-code-point graphemes by a code point offset, used by bubble and fullwidth styles.
+ * Multi-code-point graphemes (keycap emoji like 1️⃣, flags, ZWJ sequences) pass through whole.
  * @param {string} str - Input string
  * @param {(cp: number) => number|undefined} shift - Returns the new code point, or undefined to keep
  * @returns {string} Transformed string
  */
-const mapCodePoints = (str, shift) => chars(str).map((ch) => {
-  const mapped = shift(ch.codePointAt(0));
-  return mapped === undefined ? ch : String.fromCodePoint(mapped);
+const mapCodePoints = (str, shift) => graphemes(str).map((g) => {
+  if (chars(g).length !== 1) return g;
+  const mapped = shift(g.codePointAt(0));
+  return mapped === undefined ? g : String.fromCodePoint(mapped);
 }).join('');
 
 /**

@@ -125,7 +125,9 @@ export const main = async (argv, io) => {
       io.stdout(`${JSON.stringify(results, null, 2)}\n`);
     } else {
       const width = Math.max(...STYLES.map((s) => s.length));
-      io.stdout(STYLES.map((s) => `${s.padEnd(width)}  ${results[s]}`).join('\n') + '\n');
+      // One row per style, so line breaks inside a result are shown escaped
+      const oneLine = (v) => v.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+      io.stdout(STYLES.map((s) => `${s.padEnd(width)}  ${oneLine(results[s])}`).join('\n') + '\n');
     }
     return 0;
   }
