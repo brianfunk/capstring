@@ -132,8 +132,9 @@ const capitalize = (word) => {
  * 2. A boundary is inserted between a lowercase letter or digit and an uppercase letter
  *    (`helloWorld`, `version2Beta`), and between an uppercase run and a capitalized word
  *    (`XMLHttp` -> `XML Http`).
- * 3. Any run of characters that is not a letter or digit becomes a single separator
- *    (whitespace, `_`, `-`, `.`, `/`, punctuation, emoji).
+ * 3. Any run of characters that is not a letter, digit, or combining mark becomes a single
+ *    separator (whitespace, `_`, `-`, `.`, `/`, punctuation, emoji). Input is NFC-normalized
+ *    first so decomposed accents stay attached to their letters.
  * 4. Letters are not split from digits (`utf8`, `mp3` stay intact).
  *
  * @param {string} str - Input string
@@ -144,22 +145,25 @@ const capitalize = (word) => {
  * toWords('__private_var__') // ['private', 'var']
  */
 const toWords = (str) => str
+  .normalize('NFC')
   .replace(/['’]/gu, '')
   .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
   .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
-  .replace(/[^\p{L}\p{N}]+/gu, ' ')
+  .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
   .trim()
   .split(' ')
   .filter(Boolean)
   .map((w) => w.toLowerCase());
 
 /**
- * Build a URL slug: fold diacritics, lowercase, keep only `a-z0-9`, single hyphens.
+ * Build a URL slug: tokenize like the other code styles (so camelCase splits), fold
+ * diacritics, lowercase, keep only `a-z0-9`, single hyphens.
  * Scripts that cannot be folded to ASCII (e.g. CJK, Cyrillic) are dropped.
  * @param {string} str - Input string
  * @returns {string} Slug (may be empty)
  */
-const slugify = (str) => str
+const slugify = (str) => toWords(str)
+  .join(' ')
   .normalize('NFKD')
   .replace(/\p{M}/gu, '')
   .toLowerCase()
@@ -243,7 +247,7 @@ const pigLatinWord = (word) => {
     result = lower + 'way';
   } else {
     // Leading consonant cluster: `qu` moves as a unit; `y` is a vowel unless it leads the word
-    const cluster = /^(qu|[^aeiouy]+|[^aeiou]+)/.exec(lower)[0];
+    const cluster = /^([^aeiouy]*qu|[^aeiouy]+|[^aeiou]+)/.exec(lower)[0];
     result = lower.slice(cluster.length) + cluster + 'ay';
   }
   return wasCapitalized ? capitalize(result) : result;
@@ -328,7 +332,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'sentence':
       // Sentence case - capitalize the first letter and the first letter after . ! ?
-      return str.toLowerCase().replace(/(^["'([]*|[.!?]+["')\]]*\s+)(\p{L})/gu, (_, lead, letter) =>
+      return str.toLowerCase().replace(/(^["'([]*|[.!?]+["')\]]*\s+["'([]*)(\p{L})/gu, (_, lead, letter) =>
         lead + letter.toUpperCase()
       );
 
@@ -471,7 +475,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'strike':
       // s̶t̶r̶i̶k̶e̶
-      return chars(str).map((ch) => (/\s/u.test(ch) ? ch : ch + '̶')).join('');
+      return graphemes(str).map((g) => (/^\s$/u.test(g) ? g : g + '\u0336')).join('');
 
     /* c8 ignore next 2 -- unreachable: style validated above */
     default:
