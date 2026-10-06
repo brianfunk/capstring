@@ -130,7 +130,9 @@ describe('capstring', () => {
       ['Crème Brûlée', 'crème brûlée'],
       ['Cre\u0300me Bru\u0302le\u0301e', 'crème brûlée'], // NFD input, marks stay attached
       ['ПриветМир', 'привет мир'],
-      ['😀 hi!!', 'hi']
+      ['😀 hi!!', 'hi'],
+      ['❤️ hi ☕️', 'hi'], // variation selectors leave with their emoji
+      ['❤️', '']
     ];
 
     it.each(cases)('%j tokenizes to %j', (input, words) => {
@@ -333,6 +335,9 @@ describe('capstring', () => {
       expect(capstring('hi', 'strike')).toBe('h̶i̶');
       expect(capstring('a b', 'strike')).toBe('a̶ b̶');
       expect(capstring('😀', 'strike')).toBe('😀̶');
+      expect(capstring('👨‍👩‍👧🇺🇸', 'strike')).toBe('👨‍👩‍👧\u0336🇺🇸\u0336'); // ZWJ family and flag stay whole
+      expect(capstring('e\u0301', 'strike')).toBe('e\u0301\u0336');
+      expect(capstring('a\r\nb', 'strike')).toBe('a\u0336\r\nb\u0336');
     });
   });
 
