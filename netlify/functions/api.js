@@ -383,10 +383,10 @@ const route = async (req) => {
       if (input.length > MAX_TEXT) return { input, output: null, error: 'text_too_long' };
       return { input, output: capstring(input, style) };
     });
-    const body = format === 'txt'
+    const payload = format === 'txt'
       ? results.map((r) => r.output ?? '').join('\n')
       : { style, count: results.length, results };
-    return out(body, { cache: false });
+    return out(payload, { cache: false });
   }
 
   requireMethod(req, 'GET');
