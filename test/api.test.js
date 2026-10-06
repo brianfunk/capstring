@@ -172,6 +172,7 @@ describe('GET /api/all/:text', () => {
     const lines = text.split('\n');
     expect(lines).toHaveLength(STYLES.length);
     expect(lines[0]).toBe('same\ta\\nb');
+    expect((await (await call('/api/all/a%E2%80%A8b?format=txt')).text()).split('\n')[0]).toBe('same\ta\\u2028b');
   });
 
   it('format=txt gives one tab-separated line per style', async () => {
@@ -361,6 +362,12 @@ describe('GET /api/spell/:text', () => {
     const { body } = await json('/api/spell/Helo,%20world!%20Recieve%20ok%20NASA.');
     expect(body.output).toBe('Hello, world! Receive ok NASA.');
     expect(body.corrections).toEqual([{ from: 'Helo', to: 'Hello' }, { from: 'Recieve', to: 'Receive' }]);
+  });
+
+  it('keeps contractions as single tokens', async () => {
+    const { body } = await json("/api/spell/isn't%20it%20don't");
+    expect(body.output).toBe("isn't it don't");
+    expect(body.corrections).toEqual([]);
   });
 
   it('leaves unsuggestable words alone', async () => {

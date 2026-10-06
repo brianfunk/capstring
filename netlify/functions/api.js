@@ -67,7 +67,8 @@ const LOREM_WORDS = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed 
  * @param {string} value - Raw value
  * @returns {string} Single-line value
  */
-const oneLine = (value) => value.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+const oneLine = (value) => value
+  .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 /** Thrown by handlers to produce a structured error response */
 class ApiError extends Error {
@@ -261,7 +262,7 @@ const spellCheck = async (text) => {
     const variants = new Set([word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]);
     return [...variants].some((variant) => checker.correct(variant));
   };
-  const output = text.replace(/[A-Za-z]+/g, (word) => {
+  const output = text.replace(/[A-Za-z]+(?:['’][A-Za-z]+)*/g, (word) => { // contractions stay whole (isn't)
     if (isCorrect(word)) return word;
     if (attempts >= MAX_SPELL_SUGGESTIONS) {
       limited = true;
