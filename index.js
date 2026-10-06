@@ -149,6 +149,7 @@ const toWords = (str) => str
   .replace(/['’]/gu, '')
   .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
   .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
+  .replace(/(^|[^\p{L}\p{N}\p{M}])\p{M}+/gu, '$1') // drop marks orphaned by a removed base (❤️ -> U+FE0F)
   .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
   .trim()
   .split(' ')
@@ -473,7 +474,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'strike':
       // s̶t̶r̶i̶k̶e̶
-      return graphemes(str).map((g) => (/^\s$/u.test(g) ? g : g + '\u0336')).join('');
+      return graphemes(str).map((g) => (/^\s+$/u.test(g) ? g : g + '\u0336')).join('');
 
     /* c8 ignore next 2 -- unreachable: style validated above */
     default:
