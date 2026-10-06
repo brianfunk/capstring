@@ -289,13 +289,14 @@ const route = async (req) => {
 
   if (head === undefined) {
     requireMethod(req, 'GET');
-    return respond({ name: pkg.name, version: pkg.version, docs: `${SITE}/#api`, endpoints: ENDPOINTS }, { pretty });
+    const info = { name: pkg.name, version: pkg.version, docs: `${SITE}/#api`, endpoints: ENDPOINTS };
+    return out(format === 'txt' ? `${info.name} ${info.version}\n${ENDPOINTS.join('\n')}` : info);
   }
 
   if (head === 'styles') {
     requireMethod(req, 'GET');
     noExtraSegments(rest);
-    return respond({ count: STYLES.length, styles: STYLES, categories: CATEGORIES }, { pretty });
+    return out(format === 'txt' ? STYLES.join('\n') : { count: STYLES.length, styles: STYLES, categories: CATEGORIES });
   }
 
   if (head === 'all') {

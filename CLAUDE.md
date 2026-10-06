@@ -16,7 +16,7 @@ npm run dev        # Netlify Dev: website + API on http://localhost:8888
 
 ## Code Style
 
-- Node 22.12+ (CI runs 22 and 24; vitest 5 needs 22.12)
+- Node 22.13+ (CI runs 22 and 24; eslint 10 needs 22.13, vitest 5 needs 22.12)
 - ES2022+ syntax (const/let, arrow functions, template literals)
 - ESM modules only (`import`/`export`)
 - Full JSDoc documentation

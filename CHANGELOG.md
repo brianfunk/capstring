@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Behavior changes
 
-- **Node.js 22.12+ required** (18 and 20 are end-of-life; the test toolchain no longer supports them)
+- **Node.js 22.13+ required** (18 and 20 are end-of-life; the test toolchain no longer supports them)
 - Empty string input now returns `''` instead of `false` (non-string input still returns `false`)
 - `slug` is now a real slugifier: diacritics folded, punctuation removed, ASCII only (`Crème Brûlée & Co.` → `creme-brulee-co`). It no longer equals `kebab`, which keeps Unicode letters
 - All code styles tokenize camelCase and separator input (`helloWorld` → `hello_world`, was `helloworld`)

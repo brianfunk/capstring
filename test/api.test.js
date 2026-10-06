@@ -58,6 +58,15 @@ describe('GET /api/styles', () => {
     expect(Object.keys(body.categories)).toEqual(Object.keys(CATEGORIES));
   });
 
+  it('honours format=txt on styles and the root', async () => {
+    const styles = await call('/api/styles?format=txt');
+    expect(styles.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect((await styles.text()).split('\n')).toEqual([...STYLES]);
+    const root = await call('/api?format=txt');
+    expect(root.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(await root.text()).toMatch(/^capstring \d+\.\d+\.\d+\nGET \/api\/styles\n/);
+  });
+
   it('rejects extra segments', async () => {
     const { res, body } = await json('/api/styles/extra');
     expect(res.status).toBe(404);

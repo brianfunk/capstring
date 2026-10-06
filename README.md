@@ -261,7 +261,7 @@ This project uses [Semantic Versioning 2.0](http://semver.org/spec/v2.0.0.html).
 
 ## Requirements
 
-- Node.js 22.12+ (or any modern browser)
+- Node.js 22.13+ (or any modern browser)
 - ES modules (`import`/`export`)
 
 ## License
