@@ -74,6 +74,12 @@ describe('cli main()', () => {
     expect(short.out.split('\n')).toHaveLength(r.out.split('\n').length);
   });
 
+  it('--all keeps one row per style for multiline input', async () => {
+    const r = await run(['--all'], { stdin: 'a\nb\n' });
+    expect(r.out.trimEnd().split('\n')).toHaveLength(STYLES.length);
+    expect(r.out).toMatch(/^same\s+a\\nb$/m);
+  });
+
   it('--all --json prints an object keyed by style', async () => {
     const r = await run(['--all', '--json', 'hi']);
     const obj = JSON.parse(r.out);
