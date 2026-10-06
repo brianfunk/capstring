@@ -216,6 +216,12 @@ describe('POST /api/batch', () => {
     });
   });
 
+  it('honours format=txt with one output line per text (errors become empty lines)', async () => {
+    const res = await post('/api/batch?format=txt', { style: 'upper', texts: ['a', 7, 'b'] });
+    expect(res.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(await res.text()).toBe('A\n\nB');
+  });
+
   it('reports per-item problems inline', async () => {
     const res = await post('/api/batch', { style: 'upper', texts: ['ok', 42, 'a'.repeat(2001)] });
     const body = await res.json();

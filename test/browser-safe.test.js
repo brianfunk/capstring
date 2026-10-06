@@ -23,6 +23,7 @@ describe('index.js stays browser-safe', () => {
     const toml = read('netlify.toml');
     expect(toml).toContain('command = "cp index.js web/capstring.js"');
     expect(toml).toMatch(/ignore = "test \\"\$CACHED_COMMIT_REF\\" = \\"\$COMMIT_REF\\" && exit 1;/);
+    expect(toml).toMatch(/ignore = .*package-lock\.json"/); // lockfile-only commits must still rebuild
     expect(read('.gitignore')).toContain('web/capstring.js');
   });
 });
