@@ -4,6 +4,7 @@ const API = `${location.origin}/api`;
 const LABELS = { case: 'Case', code: 'Code', fun: 'Fun', encoding: 'Encodings', art: 'Unicode Art' };
 const DEFAULT_TEXT = 'hello world';
 const MAX_CHAIN = 10;
+const MAX_CHAIN_OUTPUT = 20000; // binary/morse expand ~9x per step; keep shared URLs from allocating huge strings
 
 const input = document.getElementById('t');
 const results = document.getElementById('results');
@@ -57,8 +58,15 @@ const buildRows = () => {
 /** Current text, falling back to the default so the grid is never empty */
 const currentText = () => input.value || DEFAULT_TEXT;
 
-/** Output of the current chain applied to the current text */
-const chainResult = () => chain.reduce((acc, s) => capstring(acc, s), currentText());
+/** Output of the current chain applied to the current text, stopping once it grows past the bound */
+const chainResult = () => {
+  let acc = currentText();
+  for (const s of chain) {
+    acc = capstring(acc, s);
+    if (acc.length > MAX_CHAIN_OUTPUT) return `(output exceeds ${MAX_CHAIN_OUTPUT} characters at "${s}"; shorten the text or the chain)`;
+  }
+  return acc;
+};
 
 /** encodeURIComponent plus the shell metacharacters it leaves alone (' ( ) * !), so the curl line pastes cleanly */
 const shellSafeEncode = (text) => encodeURIComponent(text).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);

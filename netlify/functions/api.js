@@ -32,6 +32,7 @@ const SITE = 'https://capstring.netlify.app';
 const MAX_TEXT = 2000;
 const MAX_BATCH = 100;
 const MAX_CHAIN = 10;
+const MAX_CHAIN_OUTPUT = 20000; // binary/morse expand ~9x per step; bound intermediate results
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
 const MAX_LABEL = 100;
@@ -317,7 +318,13 @@ const route = async (req) => {
     if (styles.length > MAX_CHAIN) throw new ApiError(400, 'chain_too_long', `Chain at most ${MAX_CHAIN} styles.`);
     styles.forEach(getStyle);
     const text = getText(textSegments, query);
-    const output = styles.reduce((acc, s) => capstring(acc, s), text);
+    const output = styles.reduce((acc, s) => {
+      const next = capstring(acc, s);
+      if (next.length > MAX_CHAIN_OUTPUT) {
+        throw new ApiError(413, 'output_too_long', `Chain output exceeded ${MAX_CHAIN_OUTPUT} characters at step "${s}". Use shorter text or fewer expanding styles.`);
+      }
+      return next;
+    }, text);
     return out(format === 'txt' ? output : { input: text, styles, output }, { cache: !styles.includes('random') });
   }
 

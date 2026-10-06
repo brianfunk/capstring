@@ -187,6 +187,14 @@ describe('GET /api/chain/:styles/:text', () => {
     expect(await (await call('/api/chain/upper/hi?format=txt')).text()).toBe('HI');
   });
 
+  it('bounds intermediate output so expanding chains cannot exhaust memory', async () => {
+    const { res, body } = await json(`/api/chain/binary+binary+binary/${'a'.repeat(300)}`);
+    expect(res.status).toBe(413);
+    expect(body.error.code).toBe('output_too_long');
+    expect(body.error.message).toContain('step "binary"');
+    expect((await call('/api/chain/binary+upper/hi')).status).toBe(200);
+  });
+
   it('caches unless random is in the chain', async () => {
     expect((await call('/api/chain/upper/hi')).headers.get('Cache-Control')).toBe('public, max-age=86400');
     expect((await call('/api/chain/upper+random/hi')).headers.get('Cache-Control')).toBe('no-store');
