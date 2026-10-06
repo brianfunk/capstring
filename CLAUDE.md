@@ -33,7 +33,7 @@ Single-file library plus a thin CLI:
 - `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
 - `web/` - static site (index.html, style.css, app.js), no build step; imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
 - `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects. `nspell` and `dictionary-en` (spellcheck) are **devDependencies** on purpose: esbuild bundles them into the function and the npm package stays zero-dependency. `dictionary-en` is listed as external + included_files in `netlify.toml` because it reads its `.aff`/`.dic` files by path.
-- `netlify.toml` - publish `web/`, production branch `master`, branch deploys for `dev`
+- `netlify.toml` - publish `web/`, build copies `index.js`, bundles the function. Branch settings (production `master`, branch deploy `dev`) live in the Netlify UI, not in the file
 
 ## Supported Styles (37 total)
 

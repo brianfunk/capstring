@@ -114,11 +114,10 @@ const copy = async (text, label) => {
 
 /** Keep the URL shareable: ?t=<text>&chain=a+b */
 const syncUrl = () => {
-  const params = new URLSearchParams();
-  if (input.value) params.set('t', input.value);
-  if (chain.length) params.set('chain', chain.join('+'));
-  const qs = params.toString().replace(/%2B/g, '+');
-  history.replaceState(null, '', (qs ? `?${qs}` : location.pathname) + location.hash);
+  const parts = [];
+  if (input.value) parts.push(`t=${encodeURIComponent(input.value)}`);
+  if (chain.length) parts.push(`chain=${chain.join('+')}`); // style names are [a-z]+, safe unencoded
+  history.replaceState(null, '', (parts.length ? `?${parts.join('&')}` : location.pathname) + location.hash);
 };
 
 let renderTimer;

@@ -63,7 +63,7 @@
           <tr><td><code>POST /api/batch</code></td><td>body <code>{ "style": "kebab", "texts": ["a", "b"] }</code></td></tr>
           <tr><td><code>GET /api/badge/:style/:text</code></td><td>shields-style SVG badge for your README (<code>?label=</code> to override)</td></tr>
           <tr><td><code>GET /api/lorem/:count</code></td><td>lorem ipsum words, 1 to 1000, optional <code>?style=</code></td></tr>
-          <tr><td><code>GET /api/spell/:text</code></td><td>spell-corrected text with a list of corrections, optional <code>?style=</code></td></tr>
+          <tr><td><code>GET /api/spell/:text</code></td><td>spell-corrected text with a list of corrections, optional <code>?style=</code> (max 500 chars, 50 corrections)</td></tr>
         </tbody>
       </table>
       <pre><code>curl https://capstring.netlify.app/api/title/hello%20world

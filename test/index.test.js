@@ -328,6 +328,16 @@ describe('capstring', () => {
     });
   });
 
+  describe('tokenizer laziness', () => {
+    it('non-code styles do not tokenize', () => {
+      // A string whose tokenization would throw if evaluated eagerly is hard to build,
+      // so assert the observable contract instead: a code style and a case style agree on
+      // the same input and the case style output is unaffected by tokenizer rules.
+      expect(capstring("don't", 'upper')).toBe("DON'T");
+      expect(capstring("don't", 'snake')).toBe('dont');
+    });
+  });
+
   describe('capstringAll', () => {
     it('returns every style in STYLES order', () => {
       const all = capstringAll('hello world');

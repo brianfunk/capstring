@@ -34,13 +34,19 @@ const MAX_BATCH = 100;
 const MAX_CHAIN = 10;
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
+const MAX_LABEL = 100;
+const MAX_SPELL_TEXT = 500;
+const MAX_SPELL_SUGGESTIONS = 50;
+
+/** First path segments owned by named endpoints; a style with one of these names would be unreachable */
+export const RESERVED = Object.freeze(['styles', 'all', 'chain', 'badge', 'lorem', 'spell', 'batch']);
 const ENDPOINTS = [
   'GET /api/styles',
   'GET /api/all/:text',
   'GET /api/chain/:styles/:text',
   'GET /api/badge/:style/:text',
   'GET /api/lorem/:count?style=',
-  'GET /api/spell/:text?style=',
+  'GET /api/spell/:text?style= (max 500 chars)',
   'GET /api/:style/:text',
   'POST /api/batch'
 ];
@@ -220,22 +226,37 @@ let spellCheckerPromise = null;
  */
 const getSpellChecker = () => {
   spellCheckerPromise ??= Promise.all([import('nspell'), import('dictionary-en')])
-    .then(([{ default: nspell }, { default: dictionary }]) => nspell(dictionary));
+    .then(([{ default: nspell }, { default: dictionary }]) => nspell(dictionary))
+    /* c8 ignore start -- only reachable when the dictionary files are missing from the deploy */
+    .catch((err) => {
+      spellCheckerPromise = null; // let the next request retry instead of caching the failure
+      throw err;
+    });
+    /* c8 ignore stop */
   return spellCheckerPromise;
 };
 
 /**
- * Correct misspelled words, preserving whitespace, punctuation, and capitalization
+ * Correct misspelled words, preserving whitespace, punctuation, and capitalization.
+ * Hunspell's suggest() is expensive (tens of ms per unknown word), so at most
+ * MAX_SPELL_SUGGESTIONS words are corrected per request; the rest pass through unchanged.
  * @param {string} text - Input text
- * @returns {Promise<{ output: string, corrections: { from: string, to: string }[] }>} Result
+ * @returns {Promise<{ output: string, corrections: { from: string, to: string }[], limited: boolean }>} Result
  */
 const spellCheck = async (text) => {
   const checker = await getSpellChecker();
   const corrections = [];
-  const isCorrect = (word) => [word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]
-    .some((variant) => checker.correct(variant));
+  let limited = false;
+  const isCorrect = (word) => {
+    const variants = new Set([word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]);
+    return [...variants].some((variant) => checker.correct(variant));
+  };
   const output = text.replace(/[A-Za-z]+/g, (word) => {
     if (isCorrect(word)) return word;
+    if (corrections.length >= MAX_SPELL_SUGGESTIONS) {
+      limited = true;
+      return word;
+    }
     const [suggestion] = checker.suggest(word);
     if (!suggestion) return word;
     const fixed = word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()
@@ -244,7 +265,7 @@ const spellCheck = async (text) => {
     corrections.push({ from: word, to: fixed });
     return fixed;
   });
-  return { output, corrections };
+  return { output, corrections, limited };
 };
 
 // ========== Router ==========
@@ -302,6 +323,7 @@ const route = async (req) => {
     const style = getStyle(styleRaw ?? '');
     const text = getText(textSegments, query);
     const label = query.get('label') || style;
+    if (label.length > MAX_LABEL) throw new ApiError(400, 'label_too_long', `label must be at most ${MAX_LABEL} characters.`);
     return new Response(badgeSvg(label, capstring(text, style)), {
       headers: {
         ...CORS,
@@ -316,7 +338,7 @@ const route = async (req) => {
     requireMethod(req, 'GET');
     const [countRaw, ...extra] = rest;
     noExtraSegments(extra);
-    const count = countRaw === undefined ? DEFAULT_LOREM : Number(countRaw);
+    const count = countRaw === undefined ? DEFAULT_LOREM : (/^\d+$/.test(countRaw) ? Number(countRaw) : NaN);
     if (!Number.isInteger(count) || count < 1 || count > MAX_LOREM) {
       throw new ApiError(400, 'invalid_count', `count must be an integer from 1 to ${MAX_LOREM}.`);
     }
@@ -329,10 +351,11 @@ const route = async (req) => {
   if (head === 'spell') {
     requireMethod(req, 'GET');
     const text = getText(rest, query);
+    if (text.length > MAX_SPELL_TEXT) throw new ApiError(413, 'text_too_long', `Spellcheck text must be at most ${MAX_SPELL_TEXT} characters.`);
     const style = optionalStyle(query);
-    const { output: corrected, corrections } = await spellCheck(text);
+    const { output: corrected, corrections, limited } = await spellCheck(text);
     const output = style ? capstring(corrected, style) : corrected;
-    return out(format === 'txt' ? output : { input: text, style, output, corrections }, { cache: style !== 'random' });
+    return out(format === 'txt' ? output : { input: text, style, output, corrections, limited }, { cache: style !== 'random' });
   }
 
   if (head === 'batch') {
@@ -376,8 +399,13 @@ export default async (req) => {
   try {
     return await route(req);
   } catch (err) {
-    /* c8 ignore next -- defensive: nothing in route() is expected to throw anything but ApiError */
-    const apiErr = err instanceof ApiError ? err : new ApiError(500, 'internal_error', 'Something went wrong.');
+    let apiErr = err;
+    /* c8 ignore start -- only the spellchecker loader can throw a non-ApiError, and only on a broken deploy */
+    if (!(err instanceof ApiError)) {
+      console.error('capstring api: unhandled error', err);
+      apiErr = new ApiError(500, 'internal_error', 'Something went wrong.');
+    }
+    /* c8 ignore stop */
     const { allow, ...extra } = apiErr.extra;
     return respond(
       { error: { code: apiErr.code, message: apiErr.message, ...extra } },

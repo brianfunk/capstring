@@ -81,6 +81,12 @@ describe('cli main()', () => {
     expect(obj.upper).toBe('HI');
   });
 
+  it('accepts flags after the text', async () => {
+    expect((await run(['hello world', '--all'])).out.split('\n')[0]).toMatch(/^same\s+hello world$/);
+    expect((await run(['hello', 'upper', '--json'])).code).toBe(2); // first positional is still the style
+    expect((await run(['upper', 'hi', '--json'])).out).toBe('{"input":"hi","style":"upper","output":"HI"}\n');
+  });
+
   it('-- ends option parsing', async () => {
     const r = await run(['upper', '--', '--not-a-flag']);
     expect(r.code).toBe(0);

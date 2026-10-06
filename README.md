@@ -209,7 +209,7 @@ curl -X POST https://capstring.netlify.app/api/batch \
 | `POST /api/batch` | `{ style, texts[] }` (max 100 texts) |
 | `GET /api/badge/:style/:text` | shields-style SVG badge, `?label=` to override the left side |
 | `GET /api/lorem/:count` | lorem ipsum words (1 to 1000), optional `?style=` |
-| `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=` |
+| `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=`. Max 500 chars, up to 50 corrections per request |
 
 [![capstring badge](https://capstring.netlify.app/api/badge/sponge/hello%20world?label=capstring)](https://capstring.netlify.app)
 

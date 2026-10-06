@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import handler, { config } from '../netlify/functions/api.js';
+import handler, { config, RESERVED } from '../netlify/functions/api.js';
 import { STYLES, CATEGORIES } from '../index.js';
 
 /**
@@ -22,6 +22,11 @@ describe('api config', () => {
   it('owns /api and /api/*', () => {
     expect(config.path).toEqual(['/api', '/api/*']);
   });
+
+  it('no style name collides with a reserved endpoint segment', () => {
+    expect(RESERVED).toEqual(['styles', 'all', 'chain', 'badge', 'lorem', 'spell', 'batch']);
+    expect(STYLES.filter((s) => RESERVED.includes(s))).toEqual([]);
+  });
 });
 
 describe('GET /api', () => {
@@ -31,7 +36,7 @@ describe('GET /api', () => {
     expect(body.name).toBe('capstring');
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(body.endpoints).toContain('POST /api/batch');
-    expect(body.endpoints).toContain('GET /api/spell/:text?style=');
+    expect(body.endpoints.some((e) => e.startsWith('GET /api/spell/:text'))).toBe(true);
     expect((await json('/api/')).body.name).toBe('capstring');
   });
 
@@ -266,6 +271,13 @@ describe('GET /api/badge/:style/:text', () => {
     expect((await call('/api/badge/random/hi')).headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('limits label length', async () => {
+    expect((await call(`/api/badge/upper/hi?label=${'x'.repeat(100)}`)).status).toBe(200);
+    const { res, body } = await json(`/api/badge/upper/hi?label=${'x'.repeat(101)}`);
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe('label_too_long');
+  });
+
   it('validates style and text', async () => {
     expect((await json('/api/badge/nope/hi')).body.error.code).toBe('unknown_style');
     expect((await json('/api/badge')).body.error.code).toBe('unknown_style');
@@ -293,7 +305,7 @@ describe('GET /api/lorem/:count', () => {
   });
 
   it('validates count, style and path', async () => {
-    for (const c of ['0', '1001', '2.5', 'abc', '-1']) {
+    for (const c of ['0', '1001', '2.5', 'abc', '-1', '0x10', '1e2', '%205%20', '+5']) {
       expect((await json(`/api/lorem/${c}`)).body.error.code).toBe('invalid_count');
     }
     expect((await json('/api/lorem/3?style=nope')).body.error.code).toBe('unknown_style');
@@ -308,6 +320,7 @@ describe('GET /api/spell/:text', () => {
     expect(body.input).toBe('helo speling');
     expect(body.output).toBe('hello spelling');
     expect(body.corrections).toEqual([{ from: 'helo', to: 'hello' }, { from: 'speling', to: 'spelling' }]);
+    expect(body.limited).toBe(false);
     expect(body.style).toBeNull();
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
   });
@@ -330,8 +343,20 @@ describe('GET /api/spell/:text', () => {
     expect((await call('/api/spell/helo?style=random')).headers.get('Cache-Control')).toBe('no-store');
   });
 
-  it('validates text', async () => {
+  it('stops suggesting after 50 misspellings and says so', async () => {
+    const words = Array.from({ length: 60 }, (_, i) => `helo${String.fromCharCode(97 + (i % 26))}`);
+    const { body } = await json(`/api/spell/${encodeURIComponent(words.join(' '))}`);
+    expect(body.corrections.length).toBeLessThanOrEqual(50);
+    expect(body.limited).toBe(true);
+    expect(body.output.split(' ')).toHaveLength(60);
+  });
+
+  it('validates text and enforces the tighter spell limit', async () => {
     expect((await json('/api/spell')).body.error.code).toBe('missing_text');
+    const { res, body } = await json(`/api/spell/${'a'.repeat(501)}`);
+    expect(res.status).toBe(413);
+    expect(body.error.code).toBe('text_too_long');
+    expect((await call(`/api/spell/${'a'.repeat(500)}`)).status).toBe(200);
   });
 });
 

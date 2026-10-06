@@ -55,6 +55,7 @@ Examples:
  */
 const parseArgs = (argv) => {
   const out = { all: false, list: false, json: false, help: false, version: false, style: null, text: [], unknown: null };
+  const positionals = [];
   let optionsDone = false;
   for (const arg of argv) {
     if (!optionsDone && arg === '--') {
@@ -66,11 +67,15 @@ const parseArgs = (argv) => {
       else if (arg === '-h' || arg === '--help') out.help = true;
       else if (arg === '-v' || arg === '--version') out.version = true;
       else out.unknown = out.unknown ?? arg;
-    } else if (out.style === null && !out.all) {
-      out.style = arg;
     } else {
-      out.text.push(arg);
+      positionals.push(arg);
     }
+  }
+  // Flags may appear anywhere, so only assign positionals once every flag is known
+  if (out.all) {
+    out.text = positionals;
+  } else {
+    [out.style = null, ...out.text] = positionals;
   }
   return out;
 };
