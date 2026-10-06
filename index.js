@@ -146,6 +146,7 @@ const capitalize = (word) => {
  */
 const toWords = (str) => str
   .normalize('NFC')
+  .replace(/[0-9#*]\uFE0F?\u20E3/gu, ' ') // keycap emoji (1️⃣, #️⃣) are emoji, not digits
   .replace(/['’]/gu, '')
   .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2')
   .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')

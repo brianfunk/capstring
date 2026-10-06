@@ -132,7 +132,8 @@ describe('capstring', () => {
       ['ПриветМир', 'привет мир'],
       ['😀 hi!!', 'hi'],
       ['❤️ hi ☕️', 'hi'], // variation selectors leave with their emoji
-      ['❤️', '']
+      ['❤️', ''],
+      ['1️⃣ go #️⃣', 'go'] // keycap emoji are separators, not digits
     ];
 
     it.each(cases)('%j tokenizes to %j', (input, words) => {

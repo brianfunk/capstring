@@ -78,6 +78,9 @@ describe('cli main()', () => {
     const r = await run(['--all'], { stdin: 'a\nb\n' });
     expect(r.out.trimEnd().split('\n')).toHaveLength(STYLES.length);
     expect(r.out).toMatch(/^same\s+a\\nb$/m);
+    const ls = await run(['--all'], { stdin: 'a\u2028b\u2029c' });
+    expect(ls.out.trimEnd().split('\n')).toHaveLength(STYLES.length);
+    expect(ls.out).toMatch(/^same\s+a\\u2028b\\u2029c$/m);
   });
 
   it('--all --json prints an object keyed by style', async () => {
