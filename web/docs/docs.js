@@ -10,7 +10,7 @@ const LANGS = [
 
 const q = (s) => JSON.stringify(s);
 /** Show an output in a code comment, escaping line breaks */
-const show = (s) => s.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+const show = (s) => s.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 const pad = (code, width) => code.padEnd(width);
 
 // ---------- code samples per section ----------

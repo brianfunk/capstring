@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Website**: [capstring.netlify.app](https://capstring.netlify.app) - playground with every style live, click to copy, shareable URLs, light/dark theme
-- **Developer Docs** at `/dev/`: single-page, Stripe-style reference with every style explained and example outputs computed live, code samples in Node, TypeScript, CLI, curl, and Python
-- **API Reference** at `/docs/`: Swagger UI over a hand-written OpenAPI 3.1 document (`/openapi.json`)
-- **HTTP API** at `/api`: `/:style/:text`, `/all`, `/styles`, `POST /batch`, `/spell`, `/count`, `/lorem`, `/badge`, as a single Netlify Function. Output formats json (default), txt, html, xml, yaml, csv, jsonp, chosen by extension, `?format=`, or `Accept` header
+- **Website**: [capstring.netlify.app](https://capstring.netlify.app) - playground with every style live, click to copy, shareable URLs, light/dark theme, output format picker, live badge
+- **Developer Docs** at `/docs/`: one Stripe-style page with every style explained and example outputs computed live, Node and CLI samples inline
+- **API Reference** at `/api` (for browsers): Swagger UI over a hand-written OpenAPI 3.1 document (`/openapi.json`)
+- **HTTP API** at `/api`: `/:style/:text`, `/all`, `/styles`, `POST /batch`, `/spell`, `/count`, `/lorem`, `/badge`, as a single Netlify Function. Output formats json (default), txt, html, xml, yaml, csv, jsonp, svg, png, chosen by extension, `?format=`, or `Accept` header. Limits: 10,000 characters, 1,000 batch texts
+- `count(str)` in the library (words, characters, charactersNoSpaces, spaces) and `--count` in the CLI
 - **21 new styles**: `smallcaps`, `bubble`, `wide`, `strike`, `clap`, `morse`, `binary`, `piglatin`, `capitalize`, `lowerfirst`, `ada`, `cobol`, `initials`, `spaced`, `squish`, `nato`, `hex`, `base64`, `bold`, `italic`, `script`
 - **CLI**: `npx capstring <style> [text]`, `--all`, `--list`, `--json`, `--help`, `--version`; reads stdin when no text is given
 - **TypeScript declarations** (`index.d.ts`) with a `Style` union type for autocomplete

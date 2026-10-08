@@ -43,6 +43,13 @@ describe('capstring', () => {
       expect(() => capstring('hi', 'nope', { strict: true })).toThrow(/unknown style "nope"/);
     });
 
+    it('null or undefined options behave like default', () => {
+      expect(capstring('hi', 'upper', null)).toBe('HI');
+      expect(capstring('hi', 'upper', undefined)).toBe('HI');
+      expect(capstringAll('hi', null).upper).toBe('HI');
+      expect(capstringAll(1, null)).toBe(false);
+    });
+
     it('strict: false and empty options behave like default', () => {
       expect(capstring('hi', 'nope', { strict: false })).toBe('hi');
       expect(capstring('hi', 'upper', {})).toBe('HI');

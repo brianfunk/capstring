@@ -348,7 +348,8 @@ const notAString = (value) => new TypeError(`capstring: expected a string, got $
  * capstring('XMLHttpRequest', 'kebab') // 'xml-http-request'
  * capstring('Crème Brûlée & Co.', 'slug') // 'creme-brulee-co'
  */
-const capstring = (str, style = 'same', { strict = false } = {}) => {
+const capstring = (str, style = 'same', options = {}) => {
+  const strict = options?.strict ?? false;
   if (typeof str !== 'string') {
     if (strict) throw notAString(str);
     return false;
@@ -599,7 +600,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
  */
 const capstringAll = (str, options = {}) => {
   if (typeof str !== 'string') {
-    if (options.strict) throw notAString(str);
+    if (options?.strict) throw notAString(str);
     return false;
   }
   return Object.fromEntries(STYLES.map((s) => [s, capstring(str, s, options)]));

@@ -133,11 +133,12 @@ const oneLine = (value) => String(value)
   .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 /**
- * Singular element name for array items (`styles` -> `style`, `results` -> `result`)
+ * Element name for array items (`styles` -> `style`, `results` -> `result`, otherwise `item`)
  * @param {string} key - Plural key
  * @returns {string} Singular key
  */
-const singular = (key) => (key.endsWith('s') && key.length > 1 ? key.slice(0, -1) : 'item');
+const ITEM_NAMES = { styles: 'style', results: 'result', corrections: 'correction', endpoints: 'endpoint', formats: 'format' };
+const singular = (key) => ITEM_NAMES[key] ?? 'item';
 
 /**
  * Serialize a JSON value as XML elements
@@ -278,7 +279,7 @@ const resolveFormat = (ext, query, headers) => {
   }
   for (const part of (headers.get('accept') ?? '').split(',')) {
     const type = part.split(';')[0].trim().toLowerCase();
-    if (ACCEPT_TYPES[type]) return ACCEPT_TYPES[type];
+    if (Object.hasOwn(ACCEPT_TYPES, type)) return ACCEPT_TYPES[type];
   }
   return 'json';
 };
@@ -402,7 +403,7 @@ const outputPayload = (data, title) => ({ data, text: String(data.output), title
  * @returns {string} SVG markup
  */
 const textSvg = (text) => {
-  let value = oneLine(text).replace(/\\n|\\r|\\u2028|\\u2029/g, ' ') || ' ';
+  let value = text.replace(/[\r\n\u2028\u2029]+/gu, ' ') || ' ';
   const cps = Array.from(value);
   if (cps.length > MAX_IMAGE_CHARS) value = `${cps.slice(0, MAX_IMAGE_CHARS).join('')}…`;
   // Fullwidth forms (the `wide` style) have thin font coverage; draw them as ASCII with wide tracking instead
@@ -450,16 +451,22 @@ const getRasterizer = () => {
 };
 
 /**
- * Render text as a PNG at 2x for crisp display
- * @param {string} text - Text to render
+ * Rasterize SVG markup to PNG at 2x for crisp display
+ * @param {string} svg - SVG markup
  * @returns {Promise<Uint8Array>} PNG bytes
  */
-const textPng = async (text) => {
+const rasterize = async (svg) => {
   const { Resvg, fontFiles } = await getRasterizer();
-  const svg = textSvg(text);
   const resvg = new Resvg(svg, { font: { fontFiles, loadSystemFonts: false, defaultFontFamily: 'DejaVu Sans Mono' }, fitTo: { mode: 'zoom', value: 2 } });
   return resvg.render().asPng();
 };
+
+/**
+ * Render text as a PNG
+ * @param {string} text - Text to render
+ * @returns {Promise<Uint8Array>} PNG bytes
+ */
+const textPng = (text) => rasterize(textSvg(text));
 
 // ========== Badge ==========
 
@@ -533,7 +540,9 @@ const spellCheck = async (text) => {
     const variants = new Set([word, word.toLowerCase(), word.toUpperCase(), word[0].toUpperCase() + word.slice(1).toLowerCase()]);
     return [...variants].some((variant) => checker.correct(variant));
   };
-  const output = text.replace(/[A-Za-z]+(?:['’][A-Za-z]+)*/g, (word) => { // contractions stay whole (isn't)
+  // Whole words of ASCII letters only (contractions stay whole); words touching other letters or digits
+  // (naïve, utf8, München) are left alone rather than "corrected" in fragments
+  const output = text.replace(/(?<![\p{L}\p{N}])[A-Za-z]+(?:['’][A-Za-z]+)*(?![\p{L}\p{N}])/gu, (word) => {
     if (isCorrect(word)) return word;
     if (attempts >= MAX_SPELL_SUGGESTIONS) {
       limited = true;
@@ -658,10 +667,15 @@ const route = async (req, format, query, segments) => {
     const text = getText(textSegments, query);
     const label = query.get('label') || style;
     if (label.length > MAX_LABEL) throw new ApiError(400, 'label_too_long', `label must be at most ${MAX_LABEL} characters.`);
-    return new Response(badgeSvg(label, capstring(text, style)), {
+    if (format !== 'json' && format !== 'svg' && format !== 'png') {
+      throw new ApiError(400, 'invalid_format', 'Badges are images: use .svg (default) or .png.');
+    }
+    const svg = badgeSvg(label, capstring(text, style));
+    const body = format === 'png' ? await rasterize(svg) : svg;
+    return new Response(body, {
       headers: {
         ...CORS,
-        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Type': format === 'png' ? CONTENT_TYPES.png : CONTENT_TYPES.svg,
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': style === 'random' ? 'no-store' : 'public, max-age=86400'
       }

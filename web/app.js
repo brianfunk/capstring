@@ -58,13 +58,20 @@ const currentText = () => input.value || DEFAULT_TEXT;
 /** encodeURIComponent plus the shell metacharacters it leaves alone (' ( ) * !), so the curl line pastes cleanly */
 const shellSafeEncode = (text) => encodeURIComponent(text).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
+/** Text that would be misread in the path (a trailing format extension or a slash) goes in ?text= instead */
+const needsQuery = (text) => /\.(json|jsonp|txt|html|xml|yaml|yml|csv|svg|png)$/i.test(text) || text.includes('/');
+
 /** The API URL for the selected row (or all styles) in the chosen format */
 const apiUrl = (text) => {
   const format = formatSelect.value;
-  const path = `${selectedStyle ?? 'all'}/${shellSafeEncode(text)}`;
+  if (selectedStyle === 'badge') return badgeUrl(text);
+  const route = selectedStyle ?? 'all';
   const ext = format === 'json' ? '' : `.${format}`;
-  const query = format === 'jsonp' ? '?callback=cb' : '';
-  return `${API}/${path}${ext}${query}`;
+  const params = [];
+  if (needsQuery(text)) params.push(`text=${shellSafeEncode(text)}`);
+  if (format === 'jsonp') params.push('callback=cb');
+  const query = params.length ? `?${params.join('&')}` : '';
+  return needsQuery(text) ? `${API}/${route}${ext}${query}` : `${API}/${route}/${shellSafeEncode(text)}${ext}${query}`;
 };
 
 /** Refresh the curl line and its clickable link */
@@ -80,15 +87,20 @@ const countText = (text) => {
   return `${c.words} words, ${c.characters} chars, ${c.charactersNoSpaces} without spaces, ${c.spaces} spaces`;
 };
 
-/** Badge URL for the current text, using the selected style (or title) */
-const badgeUrl = (text) => `${API}/badge/${STYLES.includes(selectedStyle) ? selectedStyle : 'title'}/${encodeURIComponent(text)}?label=capstring`;
+/** Badge URL for the current text, using the selected style (or title); ?text= when the path would misread it */
+const badgeUrl = (text) => {
+  const style = STYLES.includes(selectedStyle) ? selectedStyle : 'title';
+  return needsQuery(text)
+    ? `${API}/badge/${style}?text=${shellSafeEncode(text)}&label=capstring`
+    : `${API}/badge/${style}/${shellSafeEncode(text)}?label=capstring`;
+};
 
 /** Ask the API to spell-correct the text; stale responses are dropped */
 const renderSpell = async (text) => {
   const el = outputs.get('spell');
   const mine = ++spellRequest;
   try {
-    const res = await fetch(`${API}/spell/${encodeURIComponent(text.slice(0, 500))}`);
+    const res = await fetch(`${API}/spell?text=${encodeURIComponent(text.slice(0, 500))}`);
     const data = await res.json();
     if (mine !== spellRequest) return;
     el.textContent = res.ok ? data.output : `(${data.error?.message ?? 'unavailable'})`;

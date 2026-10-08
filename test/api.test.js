@@ -83,6 +83,7 @@ describe('GET /api/styles', () => {
   it('supports every format', async () => {
     expect((await text('/api/styles.txt')).split('\n')).toEqual([...STYLES]);
     expect(await text('/api/styles.xml')).toContain('<styles>\n    <style>same</style>');
+    expect(await text('/api/styles.xml')).toContain('<case>\n      <item>same</item>'); // category arrays use <item>, never <cas>
     expect(await text('/api/styles.yaml')).toContain('styles:\n  - "same"');
     expect(await text('/api/styles.csv')).toMatch(/^count,styles,categories\n"50","same\|none\|/);
     expect(await text('/api/styles.html')).toContain('<th>count</th><td>50</td>');
@@ -115,6 +116,11 @@ describe('output formats', () => {
     expect(await text('/api/upper/hello.csv')).toBe('input,style,output\n"hello","upper","HELLO"');
     expect((await call('/api/upper/hello.csv')).headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
     expect(await text('/api/upper/hello.JSON')).toBe('{"input":"hello","style":"upper","output":"HELLO"}');
+  });
+
+  it('images keep backslashes and collapse real line breaks', async () => {
+    expect(await text('/api/same/C%3A%5Cnew.svg')).toContain('>C:\\new</text>');
+    expect(await text('/api/same/a%0Ab%E2%80%A8c.svg')).toContain('>a b c</text>');
   });
 
   it('images cut long output at 200 characters so the canvas stays bounded', async () => {
@@ -172,6 +178,13 @@ describe('output formats', () => {
     expect((await accept('application/yaml')).headers.get('Content-Type')).toBe('text/yaml; charset=utf-8');
     expect((await accept('*/*')).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
     expect((await accept('image/png')).headers.get('Content-Type')).toBe('image/png');
+  });
+
+  it('ignores prototype keys in the Accept header', async () => {
+    for (const evil of ['constructor', '__proto__', 'toString']) {
+      const res = await call('/api/upper/hi', { headers: { Accept: evil } });
+      expect(res.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    }
   });
 
   it('extension beats ?format= beats Accept', async () => {
@@ -466,6 +479,12 @@ describe('GET /api/spell/:text', () => {
     expect(body.corrections).toEqual([{ from: 'Helo', to: 'Hello' }, { from: 'Recieve', to: 'Receive' }]);
   });
 
+  it('leaves words with accents or digits alone instead of correcting fragments', async () => {
+    const { body } = await json('/api/spell/na%C3%AFve%20M%C3%BCnchen%20utf8%20caf%C3%A9%20helo');
+    expect(body.output).toBe('naïve München utf8 café hello');
+    expect(body.corrections).toEqual([{ from: 'helo', to: 'hello' }]);
+  });
+
   it('keeps contractions as single tokens', async () => {
     const { body } = await json("/api/spell/isn't%20it%20don't");
     expect(body.output).toBe("isn't it don't");
@@ -537,6 +556,17 @@ describe('GET /api/badge/:style/:text', () => {
   it('handles empty output and random', async () => {
     expect((await call('/api/badge/none/hi')).status).toBe(200);
     expect((await call('/api/badge/random/hi')).headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('serves png badges and rejects text formats', async () => {
+    const png = await call('/api/badge/title/hi.png');
+    expect(png.status).toBe(200);
+    expect(png.headers.get('Content-Type')).toBe('image/png');
+    expect((await call('/api/badge/title/hi.svg')).headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+    const res = await call('/api/badge/title/hi.txt');
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain('invalid_format'); // rendered in the requested (txt) format
+    expect(await text('/api/badge/same?text=readme.txt')).toContain('>readme.txt<'); // ?text= keeps the extension
   });
 
   it('limits label length', async () => {
