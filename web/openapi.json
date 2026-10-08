@@ -412,6 +412,16 @@
                 }
               }
             }
+          },
+          "413": {
+            "description": "The batch's texts total more than 100,000 characters (`batch_too_large`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -530,7 +540,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Counts (characters are Unicode code points, so an emoji counts once)",
+            "description": "Counts (characters are grapheme clusters, so an emoji, a flag, or an accented letter counts once)",
             "content": {
               "application/json": {
                 "schema": {

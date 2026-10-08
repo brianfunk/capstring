@@ -228,7 +228,7 @@ curl -X POST https://capstring.netlify.app/api/batch \
 |----------|---------|
 | `GET /api/:style/:text` | `{ input, style, output }` |
 | `GET /api/all/:text` | every style |
-| `POST /api/batch` | `{ style, texts[] }` (max 1,000 texts) |
+| `POST /api/batch` | `{ style, texts[] }` (max 1,000 texts, 100,000 characters in total) |
 | `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=` |
 | `GET /api/count/:text` | words, characters, characters without spaces |
 | `GET /api/lorem/:count` | lorem ipsum words (1 to 1000), optional `?style=` |

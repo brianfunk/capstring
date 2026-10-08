@@ -436,10 +436,12 @@ describe('capstring', () => {
   });
 
   describe('count', () => {
-    it('counts words, code points, and spaces', () => {
+    it('counts words, grapheme clusters, and spaces', () => {
       expect(count('hello world')).toEqual({ words: 2, characters: 11, charactersNoSpaces: 10, spaces: 1 });
       expect(count('  hello   world  ')).toEqual({ words: 2, characters: 17, charactersNoSpaces: 10, spaces: 7 });
       expect(count('😀 a\tb')).toEqual({ words: 3, characters: 5, charactersNoSpaces: 3, spaces: 2 });
+      expect(count('👨‍👩‍👧 🇺🇸 1️⃣')).toEqual({ words: 3, characters: 5, charactersNoSpaces: 3, spaces: 2 }); // clusters count once
+      expect(count('a\r\nb')).toEqual({ words: 2, characters: 3, charactersNoSpaces: 2, spaces: 1 }); // CRLF is one cluster
       expect(count('')).toEqual({ words: 0, characters: 0, charactersNoSpaces: 0, spaces: 0 });
       expect(count(42)).toBe(false);
     });

@@ -206,7 +206,7 @@ describe('output formats', () => {
     const { res, body } = await json('/api/upper/hello.jsonp?callback=alert(1)');
     expect(res.status).toBe(400);
     expect(body.error.code).toBe('invalid_callback');
-    for (const bad of ['.', '1foo', 'foo..bar', 'foo.', 'a'.repeat(65)]) {
+    for (const bad of ['.', '1foo', 'foo..bar', 'foo.', 'a'.repeat(65), 'class', 'new', 'delete.x']) {
       expect((await call(`/api/upper/hello.jsonp?callback=${bad}`)).status, bad).toBe(400);
     }
     expect(await text('/api/upper/hello.jsonp?callback=app.handlers.$done')).toContain('app.handlers.$done(');
@@ -389,6 +389,10 @@ describe('POST /api/batch', () => {
     expect((await (await post('/api/batch', { texts: ['a'] })).json()).error.code).toBe('unknown_style');
     expect((await (await post('/api/batch', null)).json()).error.code).toBe('unknown_style');
     expect((await (await post('/api/batch', { style: 'upper', texts: Array(1001).fill('a') })).json()).error.code).toBe('batch_too_large');
+    const big = await post('/api/batch', { style: 'upper', texts: Array(11).fill('a'.repeat(10000)) });
+    expect(big.status).toBe(413);
+    expect((await big.json()).error.code).toBe('batch_too_large');
+    expect((await post('/api/batch', { style: 'upper', texts: Array(10).fill('a'.repeat(10000)) })).status).toBe(200);
   });
 
   it('rejects invalid JSON and wrong content type', async () => {
@@ -411,11 +415,12 @@ describe('POST /api/batch', () => {
 });
 
 describe('GET /api/count/:text', () => {
-  it('counts words and characters (code points, not UTF-16 units)', async () => {
+  it('counts words and characters (grapheme clusters, not code units)', async () => {
     const { res, body } = await json('/api/count/hello%20big%20world');
     expect(res.status).toBe(200);
     expect(body).toEqual({ input: 'hello big world', words: 3, characters: 15, charactersNoSpaces: 13, spaces: 2 });
     expect((await json('/api/count/%F0%9F%98%80%20a')).body).toEqual({ input: '😀 a', words: 2, characters: 3, charactersNoSpaces: 2, spaces: 1 });
+    expect((await json('/api/count/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7')).body.characters).toBe(1); // ZWJ family is one character
     expect((await json('/api/count/%20%20spaced%20%20')).body.words).toBe(1);
   });
 
@@ -567,6 +572,12 @@ describe('GET /api/badge/:style/:text', () => {
     expect(res.status).toBe(400);
     expect(await res.text()).toContain('invalid_format'); // rendered in the requested (txt) format
     expect(await text('/api/badge/same?text=readme.txt')).toContain('>readme.txt<'); // ?text= keeps the extension
+  });
+
+  it('bounds the badge value before rendering', async () => {
+    const svg = await text(`/api/badge/binary?text=${'a'.repeat(500)}`);
+    expect(Number(/width="(\d+)"/.exec(svg)[1])).toBeLessThan(3000);
+    expect(svg).toContain('…<');
   });
 
   it('limits label length', async () => {

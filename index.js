@@ -609,9 +609,9 @@ const capstringAll = (str, options = {}) => {
 /**
  * @typedef {Object} TextCount
  * @property {number} words - Runs of non-whitespace
- * @property {number} characters - Unicode code points (an emoji counts once)
- * @property {number} charactersNoSpaces - Code points that are not whitespace
- * @property {number} spaces - Whitespace code points
+ * @property {number} characters - Grapheme clusters (an emoji, flag, or accented letter counts once)
+ * @property {number} charactersNoSpaces - Grapheme clusters that are not whitespace
+ * @property {number} spaces - Whitespace grapheme clusters (a CRLF pair counts once)
  */
 
 /**
@@ -624,8 +624,9 @@ const capstringAll = (str, options = {}) => {
  */
 const count = (str) => {
   if (typeof str !== 'string') return false;
-  const characters = chars(str).length;
-  const spaces = chars(str).filter((ch) => /\s/u.test(ch)).length;
+  const clusters = graphemes(str);
+  const characters = clusters.length;
+  const spaces = clusters.filter((g) => /^\s+$/u.test(g)).length;
   return {
     words: str.trim().split(/\s+/u).filter(Boolean).length,
     characters,

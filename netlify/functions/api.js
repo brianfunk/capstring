@@ -34,6 +34,7 @@ export const config = { path: ['/api', '/api/*'] };
 
 const MAX_TEXT = 10000;
 const MAX_BATCH = 1000;
+const MAX_BATCH_CHARS = 100000; // total input across a batch, so 1,000 near-max items cannot be sent at once
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
 const MAX_LABEL = 100;
@@ -57,6 +58,9 @@ const ENDPOINTS = [
   'GET /api/spell/:text?style= (max 500 chars)',
   'GET /api/badge/:style/:text'
 ];
+
+/** JavaScript reserved words that cannot start a JSONP callback expression */
+const JS_RESERVED = new Set(['await', 'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'let', 'new', 'null', 'return', 'static', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield', 'implements', 'interface', 'package', 'private', 'protected', 'public']);
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -359,7 +363,7 @@ const respond = async (payload, { format, query, status = 200, cache = true, hea
     case 'png': body = await textPng(payload.headline ?? payload.text); break;
     case 'jsonp': {
       const callback = query.get('callback') || 'callback';
-      if (callback.length > 64 || !/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(callback)) {
+      if (callback.length > 64 || !/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(callback) || JS_RESERVED.has(callback.split('.')[0])) {
         throw new ApiError(400, 'invalid_callback', 'callback must be a JavaScript identifier, optionally dotted (e.g. cb or app.handle).');
       }
       body = `/**/ typeof ${callback} === 'function' && ${callback}(${json});`;
@@ -618,6 +622,8 @@ const route = async (req, format, query, segments) => {
     const texts = body?.texts ?? body?.inputs;
     if (!Array.isArray(texts) || texts.length === 0) throw new ApiError(400, 'missing_texts', '"texts" must be a non-empty array of strings.');
     if (texts.length > MAX_BATCH) throw new ApiError(400, 'batch_too_large', `Send at most ${MAX_BATCH} texts per request.`);
+    const totalChars = texts.reduce((n, t) => n + (typeof t === 'string' ? t.length : 0), 0);
+    if (totalChars > MAX_BATCH_CHARS) throw new ApiError(413, 'batch_too_large', `A batch may contain at most ${MAX_BATCH_CHARS} characters in total.`);
     const results = texts.map((input) => {
       if (typeof input !== 'string') return { input, output: null, error: 'not_a_string' };
       if (input.length > MAX_TEXT) return { input: `${input.slice(0, 50)}...`, output: null, error: 'text_too_long' };
@@ -670,7 +676,8 @@ const route = async (req, format, query, segments) => {
     if (format !== 'json' && format !== 'svg' && format !== 'png') {
       throw new ApiError(400, 'invalid_format', 'Badges are images: use .svg (default) or .png.');
     }
-    const svg = badgeSvg(label, capstring(text, style));
+    const value = Array.from(capstring(text, style));
+    const svg = badgeSvg(label, value.length > MAX_IMAGE_CHARS ? `${value.slice(0, MAX_IMAGE_CHARS).join('')}…` : value.join(''));
     const body = format === 'png' ? await rasterize(svg) : svg;
     return new Response(body, {
       headers: {

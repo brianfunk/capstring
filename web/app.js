@@ -64,7 +64,7 @@ const needsQuery = (text) => /\.(json|jsonp|txt|html|xml|yaml|yml|csv|svg|png)$/
 /** The API URL for the selected row (or all styles) in the chosen format */
 const apiUrl = (text) => {
   const format = formatSelect.value;
-  if (selectedStyle === 'badge') return badgeUrl(text);
+  if (selectedStyle === 'badge') return badgeUrl(text, format === 'png' ? 'png' : '');
   const route = selectedStyle ?? 'all';
   const ext = format === 'json' ? '' : `.${format}`;
   const params = [];
@@ -77,7 +77,7 @@ const apiUrl = (text) => {
 /** Refresh the curl line and its clickable link */
 const renderCurl = () => {
   const url = apiUrl(currentText());
-  curl.textContent = `curl ${url}`;
+  curl.textContent = `curl '${url}'`; // quoted so & and ? survive the shell
   curlLink.href = url;
 };
 
@@ -88,11 +88,12 @@ const countText = (text) => {
 };
 
 /** Badge URL for the current text, using the selected style (or title); ?text= when the path would misread it */
-const badgeUrl = (text) => {
+const badgeUrl = (text, ext = '') => {
   const style = STYLES.includes(selectedStyle) ? selectedStyle : 'title';
+  const dot = ext ? `.${ext}` : '';
   return needsQuery(text)
-    ? `${API}/badge/${style}?text=${shellSafeEncode(text)}&label=capstring`
-    : `${API}/badge/${style}/${shellSafeEncode(text)}?label=capstring`;
+    ? `${API}/badge/${style}${dot}?text=${shellSafeEncode(text)}&label=capstring`
+    : `${API}/badge/${style}/${shellSafeEncode(text)}${dot}?label=capstring`;
 };
 
 /** Ask the API to spell-correct the text; stale responses are dropped */

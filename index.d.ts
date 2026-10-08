@@ -52,11 +52,11 @@ export function capstringAll(str: unknown, options?: CapstringOptions): Record<S
 export interface TextCount {
   /** Runs of non-whitespace */
   words: number;
-  /** Unicode code points (an emoji counts once) */
+  /** Grapheme clusters (an emoji, flag, or accented letter counts once) */
   characters: number;
-  /** Code points that are not whitespace */
+  /** Grapheme clusters that are not whitespace */
   charactersNoSpaces: number;
-  /** Whitespace code points */
+  /** Whitespace grapheme clusters */
   spaces: number;
 }
 
