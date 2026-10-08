@@ -48,7 +48,7 @@ Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 4. Update CHANGELOG.md for any user-facing changes; behavior changes get their own section
 5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts`, plus README table
 6. Preserve the ASCII art header
-7. Verify `npm pack --dry-run` still lists only the intended files
+7. Keep the npm package lean: `test/package.test.js` fails if the tarball gains a file or exceeds the size budget. Website, API, tests, and changelog never ship to npm
 
 ## Related Projects
 
