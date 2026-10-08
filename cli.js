@@ -15,7 +15,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import capstring, { capstringAll, STYLES, isValidStyle } from './index.js';
+import capstring, { capstringAll, count, STYLES, isValidStyle } from './index.js';
 
 const { version: VERSION } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
@@ -24,10 +24,12 @@ const USAGE = `capstring ${VERSION} - CaPiTaLiZe StRiNgS!
 Usage:
   capstring <style> [text...]     Transform text (reads stdin when no text is given)
   capstring --all [text...]       Print every style
+  capstring --count [text...]     Count words, characters, and spaces
   capstring --list                List style names
 
 Options:
   -a, --all        Print every style
+  -c, --count      Count words, characters, and spaces
   -l, --list       List style names, one per line
       --json       JSON output
   -h, --help       Show this help
@@ -51,10 +53,10 @@ Examples:
 /**
  * Parse CLI arguments
  * @param {string[]} argv - Arguments (without node and script path)
- * @returns {{ all: boolean, list: boolean, json: boolean, help: boolean, version: boolean, style: string|null, text: string[], unknown: string|null }} Parsed flags
+ * @returns {{ all: boolean, count: boolean, list: boolean, json: boolean, help: boolean, version: boolean, style: string|null, text: string[], unknown: string|null }} Parsed flags
  */
 const parseArgs = (argv) => {
-  const out = { all: false, list: false, json: false, help: false, version: false, style: null, text: [], unknown: null };
+  const out = { all: false, count: false, list: false, json: false, help: false, version: false, style: null, text: [], unknown: null };
   const positionals = [];
   let optionsDone = false;
   for (const arg of argv) {
@@ -62,6 +64,7 @@ const parseArgs = (argv) => {
       optionsDone = true;
     } else if (!optionsDone && arg.startsWith('-') && arg.length > 1) {
       if (arg === '-a' || arg === '--all') out.all = true;
+      else if (arg === '-c' || arg === '--count') out.count = true;
       else if (arg === '-l' || arg === '--list') out.list = true;
       else if (arg === '--json') out.json = true;
       else if (arg === '-h' || arg === '--help') out.help = true;
@@ -72,7 +75,7 @@ const parseArgs = (argv) => {
     }
   }
   // Flags may appear anywhere, so only assign positionals once every flag is known
-  if (out.all) {
+  if (out.all || out.count) {
     out.text = positionals;
   } else {
     [out.style = null, ...out.text] = positionals;
@@ -105,11 +108,11 @@ export const main = async (argv, io) => {
     io.stdout(args.json ? `${JSON.stringify(STYLES)}\n` : `${STYLES.join('\n')}\n`);
     return 0;
   }
-  if (!args.all && args.style === null) {
+  if (!args.all && !args.count && args.style === null) {
     io.stderr(USAGE);
     return 2;
   }
-  if (!args.all && !isValidStyle(args.style)) {
+  if (!args.all && !args.count && !isValidStyle(args.style)) {
     io.stderr(`capstring: unknown style "${args.style}". Run 'capstring --list' to see all styles.\n`);
     return 2;
   }
@@ -122,6 +125,12 @@ export const main = async (argv, io) => {
     return 2;
   } else {
     text = (await io.readStdin()).replace(/\r?\n$/, '');
+  }
+
+  if (args.count) {
+    const c = count(text);
+    io.stdout(args.json ? `${JSON.stringify(c)}\n` : `words: ${c.words}, chars: ${c.characters}, chars (no spaces): ${c.charactersNoSpaces}, spaces: ${c.spaces}\n`);
+    return 0;
   }
 
   if (args.all) {

@@ -7,7 +7,7 @@
 */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import capstring, { capstringAll, getStyles, isValidStyle, STYLES, CATEGORIES } from '../index.js';
+import capstring, { capstringAll, count, getStyles, isValidStyle, STYLES, CATEGORIES } from '../index.js';
 
 describe('capstring', () => {
   describe('input validation', () => {
@@ -423,6 +423,16 @@ describe('capstring', () => {
     it('strict: throws for non-string input', () => {
       expect(() => capstringAll(42, { strict: true })).toThrow(TypeError);
       expect(() => capstringAll(null, { strict: true })).toThrow(/got null/);
+    });
+  });
+
+  describe('count', () => {
+    it('counts words, code points, and spaces', () => {
+      expect(count('hello world')).toEqual({ words: 2, characters: 11, charactersNoSpaces: 10, spaces: 1 });
+      expect(count('  hello   world  ')).toEqual({ words: 2, characters: 17, charactersNoSpaces: 10, spaces: 7 });
+      expect(count('😀 a\tb')).toEqual({ words: 3, characters: 5, charactersNoSpaces: 3, spaces: 2 });
+      expect(count('')).toEqual({ words: 0, characters: 0, charactersNoSpaces: 0, spaces: 0 });
+      expect(count(42)).toBe(false);
     });
   });
 

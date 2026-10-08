@@ -356,15 +356,15 @@ describe('GET /api/count/:text', () => {
   it('counts words and characters (code points, not UTF-16 units)', async () => {
     const { res, body } = await json('/api/count/hello%20big%20world');
     expect(res.status).toBe(200);
-    expect(body).toEqual({ input: 'hello big world', words: 3, characters: 15, charactersNoSpaces: 13 });
-    expect((await json('/api/count/%F0%9F%98%80%20a')).body).toEqual({ input: '😀 a', words: 2, characters: 3, charactersNoSpaces: 2 });
+    expect(body).toEqual({ input: 'hello big world', words: 3, characters: 15, charactersNoSpaces: 13, spaces: 2 });
+    expect((await json('/api/count/%F0%9F%98%80%20a')).body).toEqual({ input: '😀 a', words: 2, characters: 3, charactersNoSpaces: 2, spaces: 1 });
     expect((await json('/api/count/%20%20spaced%20%20')).body.words).toBe(1);
   });
 
   it('supports txt, html, csv', async () => {
-    expect(await text('/api/count/hello%20world.txt')).toBe('words: 2, chars: 11, chars (no spaces): 10');
+    expect(await text('/api/count/hello%20world.txt')).toBe('words: 2, chars: 11, chars (no spaces): 10, spaces: 1');
     expect(await text('/api/count/hi.html')).toContain('<th>words</th><td>1</td>');
-    expect(await text('/api/count/hi.csv')).toBe('input,words,characters,charactersNoSpaces\n"hi","1","2","2"');
+    expect(await text('/api/count/hi.csv')).toBe('input,words,characters,charactersNoSpaces,spaces\n"hi","1","2","2","0"');
   });
 
   it('validates text', async () => {

@@ -1,9 +1,10 @@
-import { capstringAll, STYLES, CATEGORIES } from './capstring.js';
+import { capstringAll, count, STYLES, CATEGORIES } from './capstring.js';
 
 const API = `${location.origin}/api`;
-const LABELS = { case: 'Case', code: 'Code', fun: 'Fun', encoding: 'Encodings', art: 'Unicode Art', api: 'API extras' };
-/** Rows that are not library styles: computed by the HTTP API (spell) or locally (count) */
-const EXTRAS = ['spell', 'count'];
+const LABELS = { case: 'Case', code: 'Code', fun: 'Fun', encoding: 'Encodings', art: 'Unicode Art', tools: 'Tools', api: 'API only' };
+/** Rows that are not styles: count comes from the library, spell from the HTTP API (it needs a dictionary) */
+const TOOLS = ['count'];
+const API_ONLY = ['spell', 'badge'];
 const DEFAULT_TEXT = 'hello world';
 
 const input = document.getElementById('t');
@@ -19,7 +20,7 @@ let spellRequest = 0;
 
 /** Build one section per category with a copy row per style, plus the API extras */
 const buildRows = () => {
-  const groups = { ...CATEGORIES, api: EXTRAS };
+  const groups = { ...CATEGORIES, tools: TOOLS, api: API_ONLY };
   for (const [category, styles] of Object.entries(groups)) {
     const section = document.createElement('section');
     const h2 = document.createElement('h2');
@@ -35,8 +36,12 @@ const buildRows = () => {
       const name = document.createElement('code');
       name.className = 'name';
       name.textContent = style;
-      const out = document.createElement('span');
+      const out = document.createElement(style === 'badge' ? 'img' : 'span');
       out.className = 'out';
+      if (style === 'badge') {
+        out.alt = 'SVG badge for the current text';
+        out.height = 20;
+      }
       btn.append(name, out);
       li.append(btn);
       ul.append(li);
@@ -69,13 +74,14 @@ const renderCurl = () => {
   curlLink.href = url;
 };
 
-/** Word and character counts, same rules as /api/count */
+/** Word and character counts from the library's count() */
 const countText = (text) => {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const characters = Array.from(text).length;
-  const noSpaces = Array.from(text.replace(/\s/g, '')).length;
-  return `${words} words, ${characters} chars, ${noSpaces} without spaces`;
+  const c = count(text);
+  return `${c.words} words, ${c.characters} chars, ${c.charactersNoSpaces} without spaces, ${c.spaces} spaces`;
 };
+
+/** Badge URL for the current text, using the selected style (or title) */
+const badgeUrl = (text) => `${API}/badge/${STYLES.includes(selectedStyle) ? selectedStyle : 'title'}/${encodeURIComponent(text)}?label=capstring`;
 
 /** Ask the API to spell-correct the text; stale responses are dropped */
 const renderSpell = async (text) => {
@@ -97,6 +103,7 @@ const render = () => {
   const all = capstringAll(text);
   for (const style of STYLES) outputs.get(style).textContent = all[style];
   outputs.get('count').textContent = countText(text);
+  outputs.get('badge').src = badgeUrl(text);
   renderSpell(text);
   renderCurl();
 };
@@ -148,13 +155,14 @@ results.addEventListener('click', async (event) => {
   const btn = event.target.closest('.row');
   if (!btn) return;
   const style = btn.dataset.style;
-  const value = outputs.get(style).textContent;
+  const value = style === 'badge' ? `![capstring](${outputs.get('badge').src})` : outputs.get(style).textContent;
   selectedStyle = style;
   for (const el of results.querySelectorAll('.row.selected')) el.classList.remove('selected');
   btn.classList.add('selected');
   renderCurl();
   syncUrl();
-  if (await copy(value, `${style}: ${value}`)) {
+  if (style === 'badge') outputs.get('badge').src = badgeUrl(currentText());
+  if (await copy(value, style === 'badge' ? 'badge markdown' : `${style}: ${value}`)) {
     btn.classList.add('copied');
     setTimeout(() => btn.classList.remove('copied'), 600);
   }
@@ -164,7 +172,7 @@ document.getElementById('copy-curl').addEventListener('click', () => copy(curl.t
 
 const params = new URLSearchParams(location.search);
 if (params.get('t')) input.value = params.get('t');
-if ([...STYLES, ...EXTRAS].includes(params.get('style'))) selectedStyle = params.get('style');
+if ([...STYLES, ...TOOLS, ...API_ONLY].includes(params.get('style'))) selectedStyle = params.get('style');
 if ([...formatSelect.options].some((o) => o.value === params.get('format'))) formatSelect.value = params.get('format');
 buildRows();
 if (selectedStyle) results.querySelector(`.row[data-style="${selectedStyle}"]`)?.classList.add('selected');

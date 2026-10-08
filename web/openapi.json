@@ -528,14 +528,15 @@
                   "input": "hello world",
                   "words": 2,
                   "characters": 11,
-                  "charactersNoSpaces": 10
+                  "charactersNoSpaces": 10,
+                  "spaces": 1
                 }
               },
               "text/plain": {
                 "schema": {
                   "type": "string"
                 },
-                "example": "words: 2, chars: 11, chars (no spaces): 10"
+                "example": "words: 2, chars: 11, chars (no spaces): 10, spaces: 1"
               }
             }
           },
@@ -1121,13 +1122,17 @@
           },
           "charactersNoSpaces": {
             "type": "integer"
+          },
+          "spaces": {
+            "type": "integer"
           }
         },
         "required": [
           "input",
           "words",
           "characters",
-          "charactersNoSpaces"
+          "charactersNoSpaces",
+          "spaces"
         ]
       },
       "Lorem": {

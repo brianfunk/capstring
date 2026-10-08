@@ -606,6 +606,34 @@ const capstringAll = (str, options = {}) => {
 };
 
 /**
+ * @typedef {Object} TextCount
+ * @property {number} words - Runs of non-whitespace
+ * @property {number} characters - Unicode code points (an emoji counts once)
+ * @property {number} charactersNoSpaces - Code points that are not whitespace
+ * @property {number} spaces - Whitespace code points
+ */
+
+/**
+ * Count words, characters, and spaces
+ * @param {string} str - Input string
+ * @returns {TextCount|false} Counts, or `false` if the input is not a string
+ *
+ * @example
+ * count('hello world') // { words: 2, characters: 11, charactersNoSpaces: 10, spaces: 1 }
+ */
+const count = (str) => {
+  if (typeof str !== 'string') return false;
+  const characters = chars(str).length;
+  const spaces = chars(str).filter((ch) => /\s/u.test(ch)).length;
+  return {
+    words: str.trim().split(/\s+/u).filter(Boolean).length,
+    characters,
+    charactersNoSpaces: characters - spaces,
+    spaces
+  };
+};
+
+/**
  * Get list of all supported styles
  * @returns {string[]} A fresh copy of the style names
  */
@@ -620,4 +648,4 @@ const isValidStyle = (style) => STYLES.includes(style);
 
 // ESM exports
 export default capstring;
-export { capstring, capstringAll, getStyles, isValidStyle, STYLES, CATEGORIES };
+export { capstring, capstringAll, count, getStyles, isValidStyle, STYLES, CATEGORIES };

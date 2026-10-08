@@ -26,7 +26,7 @@
  * @module capstring/api
  */
 
-import capstring, { capstringAll, STYLES, CATEGORIES, isValidStyle } from '../../index.js';
+import capstring, { capstringAll, count, STYLES, CATEGORIES, isValidStyle } from '../../index.js';
 import pkg from '../../package.json' with { type: 'json' };
 import { SWAGGER_PAGE } from './swagger-page.js';
 
@@ -544,11 +544,9 @@ const route = async (req, format, query, segments) => {
   if (head === 'count') {
     requireMethod(req, 'GET');
     const text = getText(rest, query);
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    const characters = Array.from(text).length;
-    const charactersNoSpaces = Array.from(text.replace(/\s/g, '')).length;
-    const data = { input: text, words, characters, charactersNoSpaces };
-    return send({ data, text: `words: ${words}, chars: ${characters}, chars (no spaces): ${charactersNoSpaces}`, title: `count: ${text}` });
+    const c = count(text);
+    const data = { input: text, ...c };
+    return send({ data, text: `words: ${c.words}, chars: ${c.characters}, chars (no spaces): ${c.charactersNoSpaces}, spaces: ${c.spaces}`, title: `count: ${text}` });
   }
 
   if (head === 'lorem') {

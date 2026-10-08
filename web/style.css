@@ -86,6 +86,7 @@ ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-temp
 .row .name { font-family: var(--mono); color: var(--accent-2); font-size: 0.9rem; }
 .row .out { font-family: var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; min-height: 1.4em; }
 .row .out:empty::after { content: '\00a0'; }
+img.out { height: 20px; width: auto; max-width: 100%; align-self: center; }
 .row.copied { background: var(--accent-soft); border-color: var(--accent); }
 .row.selected { border-color: var(--accent); }
 

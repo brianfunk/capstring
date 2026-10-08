@@ -49,6 +49,21 @@ export function capstring(str: unknown, style?: Style | (string & {}), options?:
 export function capstringAll(str: string, options?: CapstringOptions): Record<Style, string>;
 export function capstringAll(str: unknown, options?: CapstringOptions): Record<Style, string> | false;
 
+export interface TextCount {
+  /** Runs of non-whitespace */
+  words: number;
+  /** Unicode code points (an emoji counts once) */
+  characters: number;
+  /** Code points that are not whitespace */
+  charactersNoSpaces: number;
+  /** Whitespace code points */
+  spaces: number;
+}
+
+/** Count words, characters, and spaces. */
+export function count(str: string): TextCount;
+export function count(str: unknown): TextCount | false;
+
 /** A fresh copy of `STYLES`. */
 export function getStyles(): Style[];
 

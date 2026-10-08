@@ -96,6 +96,12 @@ describe('cli main()', () => {
     expect((await run(['upper', 'hi', '--json'])).out).toBe('{"input":"hi","style":"upper","output":"HI"}\n');
   });
 
+  it('--count / -c prints counts, plain or JSON', async () => {
+    expect((await run(['--count', 'hello world'])).out).toBe('words: 2, chars: 11, chars (no spaces): 10, spaces: 1\n');
+    expect((await run(['-c', 'hello world', '--json'])).out).toBe('{"words":2,"characters":11,"charactersNoSpaces":10,"spaces":1}\n');
+    expect((await run(['--count'], { stdin: 'a b\n' })).out).toContain('words: 2');
+  });
+
   it('-- ends option parsing', async () => {
     const r = await run(['upper', '--', '--not-a-flag']);
     expect(r.code).toBe(0);

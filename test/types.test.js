@@ -24,7 +24,7 @@ describe('index.d.ts', () => {
   });
 
   it('declares every runtime export', () => {
-    for (const name of ['STYLES', 'CATEGORIES', 'capstring', 'capstringAll', 'getStyles', 'isValidStyle']) {
+    for (const name of ['STYLES', 'CATEGORIES', 'capstring', 'capstringAll', 'count', 'getStyles', 'isValidStyle']) {
       expect(dts).toMatch(new RegExp(`export (const|function) ${name}\\b`));
     }
     expect(dts).toContain('export default capstring');
