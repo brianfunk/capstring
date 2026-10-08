@@ -12,8 +12,8 @@ export const SWAGGER_PAGE = `<!doctype html>
   <script src="/theme-init.js"></script>
   <title>capstring API Reference</title>
   <meta name="description" content="OpenAPI reference for the capstring HTTP API: transform text into every style, batch, spell check, count, lorem ipsum, and SVG badges. Try every endpoint in the browser.">
-  <link rel="icon" type="image/svg+xml" href="/icon.svg">
-  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg?v=2">
+  <link rel="apple-touch-icon" href="/icon.svg?v=2">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css">
   <link rel="stylesheet" href="/site.css">
   <link rel="stylesheet" href="/swagger-theme.css">
