@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Website**: [capstring.netlify.app](https://capstring.netlify.app) - live preview of every style, click to copy, shareable URLs
-- **HTTP API**: `/api/:style/:text`, `/api/all`, `/api/chain`, `/api/styles`, `POST /api/batch`, plus `/api/badge` (SVG), `/api/lorem`, and `/api/spell` ported from cAPIta, as a single Netlify Function (replaces the archived cAPIta project)
-- Website chain builder: press `+` on any row to compose a chain, shareable via `?chain=upper+reverse`
-- **8 new styles** (37 total): `smallcaps`, `bubble`, `wide`, `strike`, `clap`, `morse`, `binary`, `piglatin`
+- **Website**: [capstring.netlify.app](https://capstring.netlify.app) - playground with every style live, click to copy, shareable URLs, light/dark theme
+- **Developer Docs** at `/dev/`: single-page, Stripe-style reference with every style explained and example outputs computed live, code samples in Node, TypeScript, CLI, curl, and Python
+- **API Reference** at `/docs/`: Swagger UI over a hand-written OpenAPI 3.1 document (`/openapi.json`)
+- **HTTP API** at `/api`: `/:style/:text`, `/all`, `/styles`, `POST /batch`, `/spell`, `/count`, `/lorem`, `/badge`, as a single Netlify Function. Output formats json (default), txt, html, xml, yaml, csv, jsonp, chosen by extension, `?format=`, or `Accept` header
+- **21 new styles**: `smallcaps`, `bubble`, `wide`, `strike`, `clap`, `morse`, `binary`, `piglatin`, `capitalize`, `lowerfirst`, `ada`, `cobol`, `initials`, `spaced`, `squish`, `nato`, `hex`, `base64`, `bold`, `italic`, `script`
 - **CLI**: `npx capstring <style> [text]`, `--all`, `--list`, `--json`, `--help`, `--version`; reads stdin when no text is given
 - **TypeScript declarations** (`index.d.ts`) with a `Style` union type for autocomplete
 - `capstringAll(str)` - every style at once, keyed by style name

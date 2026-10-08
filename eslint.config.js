@@ -34,6 +34,9 @@ export default [
         location: 'readonly',
         history: 'readonly',
         fetch: 'readonly',
+        localStorage: 'readonly',
+        addEventListener: 'readonly',
+        matchMedia: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly'
       }

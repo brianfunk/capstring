@@ -115,7 +115,7 @@
                   "$ref": "#/components/schemas/Styles"
                 },
                 "example": {
-                  "count": 37,
+                  "count": 50,
                   "styles": [
                     "same",
                     "none",
@@ -305,85 +305,6 @@
           },
           "413": {
             "$ref": "#/components/responses/TooLong"
-          }
-        }
-      }
-    },
-    "/chain/{styles}/{text}": {
-      "get": {
-        "tags": [
-          "transform"
-        ],
-        "summary": "Apply several styles in order",
-        "operationId": "chain",
-        "parameters": [
-          {
-            "name": "styles",
-            "in": "path",
-            "required": true,
-            "description": "Up to 10 style names joined with `+` or `,`, applied left to right.",
-            "schema": {
-              "type": "string",
-              "example": "upper+reverse"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/text"
-          },
-          {
-            "$ref": "#/components/parameters/format"
-          },
-          {
-            "$ref": "#/components/parameters/textQuery"
-          },
-          {
-            "$ref": "#/components/parameters/pretty"
-          },
-          {
-            "$ref": "#/components/parameters/callback"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The final output after every step",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Chain"
-                },
-                "example": {
-                  "input": "hello",
-                  "style": "upper+reverse",
-                  "styles": [
-                    "upper",
-                    "reverse"
-                  ],
-                  "output": "OLLEH"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "OLLEH"
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/UnknownStyle"
-          },
-          "413": {
-            "description": "Text over 2,000 characters, or an intermediate result over 20,000 characters (`output_too_long`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
           }
         }
       }
@@ -946,7 +867,20 @@
           "clap",
           "morse",
           "binary",
-          "piglatin"
+          "piglatin",
+          "capitalize",
+          "lowerfirst",
+          "ada",
+          "cobol",
+          "initials",
+          "spaced",
+          "squish",
+          "nato",
+          "hex",
+          "base64",
+          "bold",
+          "italic",
+          "script"
         ],
         "example": "title"
       },
@@ -1052,33 +986,6 @@
           "input",
           "count",
           "results"
-        ]
-      },
-      "Chain": {
-        "type": "object",
-        "properties": {
-          "input": {
-            "type": "string"
-          },
-          "style": {
-            "type": "string",
-            "description": "The styles joined with `+`"
-          },
-          "styles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StyleName"
-            }
-          },
-          "output": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "input",
-          "style",
-          "styles",
-          "output"
         ]
       },
       "BatchRequest": {
@@ -1260,10 +1167,7 @@
                 "enum": [
                   "missing_text",
                   "text_too_long",
-                  "output_too_long",
                   "unknown_style",
-                  "missing_styles",
-                  "chain_too_long",
                   "invalid_format",
                   "invalid_callback",
                   "bad_encoding",

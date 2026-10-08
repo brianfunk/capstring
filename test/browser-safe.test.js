@@ -19,7 +19,7 @@ describe('index.js stays browser-safe', () => {
     expect(read('web/index.html')).toContain('<script type="module" src="./app.js">');
     const html = read('web/index.html');
     for (const fmt of ['json', 'txt', 'html', 'xml', 'yaml', 'csv', 'jsonp']) expect(html).toContain(`<option value="${fmt}">`);
-    for (const route of ['/api/:style/:text', '/api/all/:text', '/api/chain/:styles/:text', '/api/batch', '/api/spell/:text', '/api/count/:text', '/api/lorem/:count', '/api/badge/:style/:text', '/api/styles']) {
+    for (const route of ['/api/:style/:text', '/api/all/:text', '/api/batch', '/api/spell/:text', '/api/count/:text', '/api/lorem/:count', '/api/badge/:style/:text', '/api/styles']) {
       expect(html).toContain(route);
     }
   });

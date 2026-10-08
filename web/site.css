@@ -6,8 +6,9 @@
   --muted: #666;
   --card: #fff;
   --border: #e2e2e2;
-  --accent: #2563eb;
-  --accent-soft: #b5d4ff;
+  --accent: #6d28d9;
+  --accent-soft: #ede9fe;
+  --accent-2: #0d9488;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
@@ -17,8 +18,9 @@
   --muted: #9a9a9a;
   --card: #1b1e24;
   --border: #2c3038;
-  --accent: #7ab0ff;
-  --accent-soft: #24436e;
+  --accent: #a78bfa;
+  --accent-soft: #2e1065;
+  --accent-2: #2dd4bf;
   color-scheme: dark;
 }
 html, body { background: var(--bg); color: var(--fg); }
@@ -44,7 +46,7 @@ html, body { background: var(--bg); color: var(--fg); }
   border-radius: 8px;
 }
 .site-nav a:hover { color: var(--fg); background: var(--card); }
-.site-nav a[aria-current="page"] { color: var(--fg); background: var(--card); border: 1px solid var(--border); }
+.site-nav a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
 .site-links { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 .site-links a, .site-links button { color: var(--muted); display: inline-flex; padding: 6px; border-radius: 8px; background: none; border: 0; cursor: pointer; font: inherit; }
 .site-links a:hover, .site-links button:hover { color: var(--fg); background: var(--card); }

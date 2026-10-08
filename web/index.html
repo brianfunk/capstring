@@ -12,7 +12,6 @@
   <meta property="og:title" content="capstring - CaPiTaLiZe StRiNgS">
   <meta property="og:description" content="Type anything, see every case, code convention, and fun style. Click to copy. Free HTTP API with JSON, text, HTML, XML, YAML, and CSV output.">
   <meta property="og:url" content="https://capstring.netlify.app/">
-  <meta property="og:image" content="https://capstring.netlify.app/icon.svg">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="capstring - CaPiTaLiZe StRiNgS">
   <meta name="twitter:description" content="Type anything, see every case, code convention, and fun style. Click to copy. Free HTTP API with JSON, text, HTML, XML, YAML, and CSV output.">
@@ -25,15 +24,12 @@
 <body>
   <header data-site-header></header>
   <section class="hero">
-    <p class="tagline">CaPiTaLiZe StRiNgS <span id="count"></span>. Type something, click a row to copy, press + to chain. The page URL carries your phrase, so share it.</p>
+    <p class="tagline">Every case, code convention, encoding, and ridiculous fun style. Type something and click a row to copy it.</p>
   </section>
 
   <main>
-    <div class="input-row">
-      <label class="sr-only" for="t">Text to transform</label>
-      <textarea id="t" rows="2" autofocus spellcheck="false" placeholder="hello world"></textarea>
-      <button id="spell" type="button" title="Run the text through the spell checker">Spell check</button>
-    </div>
+    <label class="sr-only" for="t">Text to transform</label>
+    <textarea id="t" rows="2" autofocus spellcheck="false" placeholder="hello world"></textarea>
 
     <p class="curl">
       <a id="curl-link" href="#" target="_blank" rel="noopener"><code id="curl"></code></a>
@@ -50,16 +46,6 @@
       <button id="copy-curl" type="button">Copy curl</button>
     </p>
 
-    <div id="chain" class="chain" hidden>
-      <div class="chain-head">
-        <span class="chain-label">Chain</span>
-        <span id="chain-list" class="chain-list"></span>
-        <button id="chain-copy" type="button">Copy result</button>
-        <button id="chain-clear" type="button">Clear</button>
-      </div>
-      <output id="chain-out" class="chain-out" for="t"></output>
-    </div>
-
     <div id="results"></div>
 
     <section id="api">
@@ -70,7 +56,6 @@
         <tbody>
           <tr><td><code>GET /api/:style/:text</code></td><td><code>{ input, style, output }</code></td></tr>
           <tr><td><code>GET /api/all/:text</code></td><td>every style at once</td></tr>
-          <tr><td><code>GET /api/chain/:styles/:text</code></td><td>styles applied in order, e.g. <code>upper+reverse</code> (max 10)</td></tr>
           <tr><td><code>POST /api/batch</code></td><td>body <code>{ "style": "kebab", "texts": ["a", "b"] }</code> (max 100)</td></tr>
           <tr><td><code>GET /api/spell/:text</code></td><td>spell-corrected text and a list of corrections, optional <code>?style=</code> (max 500 chars, 50 corrections)</td></tr>
           <tr><td><code>GET /api/count/:text</code></td><td>words, characters, characters without spaces</td></tr>
@@ -84,7 +69,7 @@
       <pre><code>curl https://capstring.netlify.app/api/title/hello%20world
 curl https://capstring.netlify.app/api/sponge/hello%20world.txt
 curl -H "Accept: text/csv" https://capstring.netlify.app/api/all/hello%20world
-curl https://capstring.netlify.app/api/chain/upper+reverse/hello.yaml
+curl https://capstring.netlify.app/api/title/hello%20world.yaml
 curl -X POST https://capstring.netlify.app/api/batch \
   -H "Content-Type: application/json" \
   -d '{"style":"slug","texts":["Crème Brûlée","Hello World"]}'

@@ -12,7 +12,7 @@ import capstring, { capstringAll } from 'capstring';
 
 capstring('hello world', 'title');     // 'Hello World'
 capstring('XMLHttpRequest', 'kebab');  // 'xml-http-request'
-capstring('Crème Brûlée', 'slug');     // 'creme-brulee'
+capstring('hello world', 'slug');      // 'hello-world'
 capstringAll('hi').upper;              // 'HI'
 ```
 
@@ -46,11 +46,11 @@ CATEGORIES;             // frozen { case, code, fun, encoding, art }
 
 | Category | Styles |
 |----------|--------|
-| case | same, none, proper, title, sentence, upper, lower, swap |
-| code | camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym |
-| fun | reverse, sponge, mock, alternate, crazy, random, clap, piglatin |
-| encoding | leet, rot13, morse, binary |
-| art | flip, smallcaps, bubble, wide, strike |
+| case | same, none, proper, title, sentence, upper, lower, swap, capitalize, lowerfirst |
+| code | camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym, ada, cobol, initials |
+| fun | reverse, sponge, mock, alternate, crazy, random, clap, piglatin, spaced, squish, nato |
+| encoding | leet, rot13, morse, binary, hex, base64 |
+| art | flip, smallcaps, bubble, wide, strike, bold, italic, script |
 
 ## Files
 
@@ -60,8 +60,8 @@ CATEGORIES;             // frozen { case, code, fun, encoding, art }
 
 ## Website and API
 
-- `web/` - static site, imports `./capstring.js` (copied from `index.js` at Netlify build time)
-- `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api` (transform, all, chain, batch, badge, lorem, spell)
+- `web/` - playground, `web/dev/` Developer Docs, `web/docs/` Swagger API Reference; imports `./capstring.js` (copied from `index.js` at Netlify build time)
+- `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api` (transform, all, batch, spell, count, lorem, badge, styles; json/txt/html/xml/yaml/csv/jsonp)
 - `npm run dev` runs both locally on http://localhost:8888
 
 ## Testing

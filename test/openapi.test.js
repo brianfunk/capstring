@@ -47,7 +47,7 @@ describe('web/openapi.json', () => {
   });
 
   it('never shows a personal name on the site', () => {
-    const files = ['../web/openapi.json', '../web/index.html', '../web/404.html', '../web/site.js', '../web/docs/index.html', '../web/dev/index.html', '../web/dev/README.md'];
+    const files = ['../web/openapi.json', '../web/index.html', '../web/404.html', '../web/site.js', '../web/docs/index.html', '../web/dev/index.html', '../web/dev/dev.js', '../web/dev/styles-data.js'];
     for (const f of files) expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/Brian|Funk/);
   });
 

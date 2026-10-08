@@ -13,7 +13,6 @@
  *   GET  /api/styles                 style names and categories
  *   GET  /api/:style/:text           one style
  *   GET  /api/all/:text              every style
- *   GET  /api/chain/:styles/:text    styles applied in order (`upper+reverse` or `upper,reverse`)
  *   POST /api/batch                  { style, texts[] }  (`inputs` accepted as an alias)
  *   GET  /api/count/:text            words and characters
  *   GET  /api/lorem/:count           lorem ipsum words, optional ?style=
@@ -35,8 +34,6 @@ export const config = { path: ['/api', '/api/*'] };
 const SITE = 'https://capstring.netlify.app';
 const MAX_TEXT = 2000;
 const MAX_BATCH = 100;
-const MAX_CHAIN = 10;
-const MAX_CHAIN_OUTPUT = 20000; // binary/morse expand ~9x per step; bound intermediate results
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
 const MAX_LABEL = 100;
@@ -44,7 +41,7 @@ const MAX_SPELL_TEXT = 500;
 const MAX_SPELL_SUGGESTIONS = 50;
 
 /** First path segments owned by named endpoints; a style with one of these names would be unreachable */
-export const RESERVED = Object.freeze(['styles', 'all', 'chain', 'batch', 'count', 'lorem', 'spell', 'badge']);
+export const RESERVED = Object.freeze(['styles', 'all', 'batch', 'count', 'lorem', 'spell', 'badge']);
 
 /** Supported output formats (`yml` is accepted as an alias of `yaml`) */
 export const FORMATS = Object.freeze(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv']);
@@ -53,7 +50,6 @@ const ENDPOINTS = [
   'GET /api/styles',
   'GET /api/:style/:text',
   'GET /api/all/:text',
-  'GET /api/chain/:styles/:text',
   'POST /api/batch',
   'GET /api/count/:text',
   'GET /api/lorem/:count?style=',
@@ -513,24 +509,6 @@ const route = async (req, format, query, segments) => {
       ? STYLES.map((style) => ({ style, output: results[style] }))
       : { input: text, count: STYLES.length, results };
     return send({ data, text: STYLES.map((s) => `${s}\t${oneLine(results[s])}`).join('\n'), title: `all styles: ${text}` }, { cache: false });
-  }
-
-  if (head === 'chain') {
-    requireMethod(req, 'GET');
-    const [stylesRaw, ...textSegments] = rest;
-    const styles = (stylesRaw ?? '').split(/[+,]/).filter(Boolean);
-    if (!styles.length) throw new ApiError(400, 'missing_styles', 'Provide styles like /api/chain/upper+reverse/<text>.');
-    if (styles.length > MAX_CHAIN) throw new ApiError(400, 'chain_too_long', `Chain at most ${MAX_CHAIN} styles.`);
-    styles.forEach(getStyle);
-    const text = getText(textSegments, query);
-    const output = styles.reduce((acc, s) => {
-      const next = capstring(acc, s);
-      if (next.length > MAX_CHAIN_OUTPUT) {
-        throw new ApiError(413, 'output_too_long', `Chain output exceeded ${MAX_CHAIN_OUTPUT} characters at step "${s}". Use shorter text or fewer expanding styles.`);
-      }
-      return next;
-    }, text);
-    return send(outputPayload({ input: text, style: styles.join('+'), styles, output }, `chain: ${text}`), { cache: !styles.includes('random') });
   }
 
   if (head === 'batch') {

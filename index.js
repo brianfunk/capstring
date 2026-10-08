@@ -18,11 +18,11 @@
  * @type {Readonly<Record<string, readonly string[]>>}
  */
 const CATEGORIES = Object.freeze({
-  case: Object.freeze(['same', 'none', 'proper', 'title', 'sentence', 'upper', 'lower', 'swap']),
-  code: Object.freeze(['camel', 'pascal', 'snake', 'kebab', 'slug', 'constant', 'python', 'dot', 'path', 'train', 'hashtag', 'acronym']),
-  fun: Object.freeze(['reverse', 'sponge', 'mock', 'alternate', 'crazy', 'random', 'clap', 'piglatin']),
-  encoding: Object.freeze(['leet', 'rot13', 'morse', 'binary']),
-  art: Object.freeze(['flip', 'smallcaps', 'bubble', 'wide', 'strike'])
+  case: Object.freeze(['same', 'none', 'proper', 'title', 'sentence', 'upper', 'lower', 'swap', 'capitalize', 'lowerfirst']),
+  code: Object.freeze(['camel', 'pascal', 'snake', 'kebab', 'slug', 'constant', 'python', 'dot', 'path', 'train', 'hashtag', 'acronym', 'ada', 'cobol', 'initials']),
+  fun: Object.freeze(['reverse', 'sponge', 'mock', 'alternate', 'crazy', 'random', 'clap', 'piglatin', 'spaced', 'squish', 'nato']),
+  encoding: Object.freeze(['leet', 'rot13', 'morse', 'binary', 'hex', 'base64']),
+  art: Object.freeze(['flip', 'smallcaps', 'bubble', 'wide', 'strike', 'bold', 'italic', 'script'])
 });
 
 /**
@@ -39,7 +39,8 @@ const STYLES = Object.freeze([
   // Added in 1.0.0
   'hashtag', 'acronym', 'rot13', 'flip',
   // Added in 1.1.0
-  'smallcaps', 'bubble', 'wide', 'strike', 'clap', 'morse', 'binary', 'piglatin'
+  'smallcaps', 'bubble', 'wide', 'strike', 'clap', 'morse', 'binary', 'piglatin',
+  'capitalize', 'lowerfirst', 'ada', 'cobol', 'initials', 'spaced', 'squish', 'nato', 'hex', 'base64', 'bold', 'italic', 'script'
 ]);
 
 // ========== Character tables ==========
@@ -81,6 +82,22 @@ const MORSE_MAP = {
   '.': '.-.-.-', ',': '--..--', '?': '..--..', "'": '.----.', '!': '-.-.--', '/': '-..-.',
   '(': '-.--.', ')': '-.--.-', '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-',
   '+': '.-.-.', '-': '-....-', '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+};
+
+/** NATO phonetic alphabet */
+const NATO_MAP = {
+  'a': 'Alfa', 'b': 'Bravo', 'c': 'Charlie', 'd': 'Delta', 'e': 'Echo', 'f': 'Foxtrot', 'g': 'Golf',
+  'h': 'Hotel', 'i': 'India', 'j': 'Juliett', 'k': 'Kilo', 'l': 'Lima', 'm': 'Mike', 'n': 'November',
+  'o': 'Oscar', 'p': 'Papa', 'q': 'Quebec', 'r': 'Romeo', 's': 'Sierra', 't': 'Tango', 'u': 'Uniform',
+  'v': 'Victor', 'w': 'Whiskey', 'x': 'X-ray', 'y': 'Yankee', 'z': 'Zulu',
+  '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four', '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+};
+
+/** Mathematical alphanumeric blocks: [A-Z start, a-z start, 0-9 start or null] */
+const MATH_FONTS = {
+  bold: [0x1D5D4, 0x1D5EE, 0x1D7EC],   // sans-serif bold
+  italic: [0x1D608, 0x1D622, null],    // sans-serif italic
+  script: [0x1D4D0, 0x1D4EA, null]     // bold script (the plain script block has gaps)
 };
 
 /** Latin letters with no Unicode decomposition, folded for slugs */
@@ -215,6 +232,36 @@ const mapCodePoints = (str, shift) => graphemes(str).map((g) => {
 }).join('');
 
 /**
+ * Map ASCII letters and digits into a Mathematical Alphanumeric block
+ * @param {[number, number, number|null]} font - Block start code points for A, a, 0
+ * @returns {(cp: number) => number|undefined} Shift function for mapCodePoints
+ */
+const toMathFont = ([upper, lower, digit]) => (cp) => {
+  if (cp >= 65 && cp <= 90) return upper + (cp - 65);
+  if (cp >= 97 && cp <= 122) return lower + (cp - 97);
+  if (digit !== null && cp >= 48 && cp <= 57) return digit + (cp - 48);
+  return undefined;
+};
+
+/**
+ * Change the case of only the first code point
+ * @param {string} str - Input string
+ * @param {boolean} upper - Uppercase (true) or lowercase (false)
+ * @returns {string} String with the first code point changed
+ */
+const firstCase = (str, upper) => {
+  const [first, ...rest] = chars(str);
+  return (upper ? first.toUpperCase() : first.toLowerCase()) + rest.join('');
+};
+
+/**
+ * Base64 of the UTF-8 bytes (works in Node and browsers, no Buffer)
+ * @param {string} str - Input string
+ * @returns {string} Base64
+ */
+const toBase64 = (str) => btoa(Array.from(new TextEncoder().encode(str), (b) => String.fromCharCode(b)).join(''));
+
+/**
  * Enclosed alphanumerics: Ⓐ-Ⓩ ⓐ-ⓩ ① -⑨ ⓪
  * @param {number} cp - Code point
  * @returns {number|undefined} Bubble code point
@@ -312,7 +359,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
   }
   if (str === '') return '';
 
-  // Only the code styles tokenize, so do it lazily (capstringAll calls this 37 times per string)
+  // Only the code styles tokenize, so do it lazily (capstringAll calls this once per style)
   let tokens;
   const words = () => (tokens ??= toWords(str));
 
@@ -352,6 +399,14 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
         const upper = ch.toUpperCase();
         return ch === upper ? ch.toLowerCase() : upper;
       }).join('');
+
+    case 'capitalize':
+      // Capitalize the first character only, leave the rest untouched
+      return firstCase(str, true);
+
+    case 'lowerfirst':
+      // lowercase the first character only, leave the rest untouched
+      return firstCase(str, false);
 
     // ========== Code Styles ==========
 
@@ -400,6 +455,18 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
       // ASAP - first letter of each word, uppercase
       return words().map((word) => chars(word)[0]).join('').toUpperCase();
 
+    case 'ada':
+      // Ada_Case
+      return words().map(capitalize).join('_');
+
+    case 'cobol':
+      // COBOL-CASE
+      return words().join('-').toUpperCase();
+
+    case 'initials':
+      // H.W. - first letter of each word with periods
+      return words().map((word) => `${chars(word)[0].toUpperCase()}.`).join('');
+
     // ========== Fun Styles ==========
 
     case 'reverse':
@@ -441,6 +508,20 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
       // Igpay Atinlay - English words only, everything else untouched
       return str.replace(/[A-Za-z]+/g, pigLatinWord);
 
+    case 'spaced':
+      // s p a c e d - one space between graphemes, two between words
+      return str.trim().split(/\s+/).map((word) => graphemes(word).join(' ')).join('  ');
+
+    case 'squish':
+      // squished - all whitespace removed
+      return str.replace(/\s+/gu, '');
+
+    case 'nato':
+      // Hotel Echo Lima Lima Oscar - NATO phonetic, words separated by " / "
+      return str.toLowerCase().trim().split(/\s+/).map((word) =>
+        chars(word).map((ch) => NATO_MAP[ch]).filter(Boolean).join(' ')
+      ).filter(Boolean).join(' / ');
+
     // ========== Encodings ==========
 
     case 'leet':
@@ -455,6 +536,13 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'binary':
       return toBinary(str);
+
+    case 'hex':
+      // UTF-8 bytes as lowercase hex pairs
+      return Array.from(new TextEncoder().encode(str), (b) => b.toString(16).padStart(2, '0')).join(' ');
+
+    case 'base64':
+      return toBase64(str);
 
     // ========== Unicode Art ==========
 
@@ -480,6 +568,18 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
     case 'strike':
       // s̶t̶r̶i̶k̶e̶
       return graphemes(str).map((g) => (/^\s+$/u.test(g) ? g : g + '\u0336')).join('');
+
+    case 'bold':
+      // 𝗯𝗼𝗹𝗱 (sans-serif bold)
+      return mapCodePoints(str, toMathFont(MATH_FONTS.bold));
+
+    case 'italic':
+      // 𝘪𝘵𝘢𝘭𝘪𝘤 (sans-serif italic)
+      return mapCodePoints(str, toMathFont(MATH_FONTS.italic));
+
+    case 'script':
+      // 𝓼𝓬𝓻𝓲𝓹𝓽 (bold script)
+      return mapCodePoints(str, toMathFont(MATH_FONTS.script));
 
     /* c8 ignore next 2 -- unreachable: style validated above */
     default:

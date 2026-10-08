@@ -27,7 +27,7 @@ describe('api config', () => {
   });
 
   it('no style name collides with a reserved endpoint segment', () => {
-    expect(RESERVED).toEqual(['styles', 'all', 'chain', 'batch', 'count', 'lorem', 'spell', 'badge']);
+    expect(RESERVED).toEqual(['styles', 'all', 'batch', 'count', 'lorem', 'spell', 'badge']);
     expect(STYLES.filter((s) => RESERVED.includes(s))).toEqual([]);
   });
 
@@ -75,8 +75,8 @@ describe('GET /api/styles', () => {
     expect((await text('/api/styles.txt')).split('\n')).toEqual([...STYLES]);
     expect(await text('/api/styles.xml')).toContain('<styles>\n    <style>same</style>');
     expect(await text('/api/styles.yaml')).toContain('styles:\n  - "same"');
-    expect(await text('/api/styles.csv')).toMatch(/^count,styles,categories\n"37","same\|none\|/);
-    expect(await text('/api/styles.html')).toContain('<th>count</th><td>37</td>');
+    expect(await text('/api/styles.csv')).toMatch(/^count,styles,categories\n"50","same\|none\|/);
+    expect(await text('/api/styles.html')).toContain('<th>count</th><td>50</td>');
   });
 
   it('rejects extra segments', async () => {
@@ -275,37 +275,6 @@ describe('GET /api/all/:text', () => {
 
   it('400s missing text', async () => {
     expect((await call('/api/all')).status).toBe(400);
-  });
-});
-
-describe('GET /api/chain/:styles/:text', () => {
-  it('applies styles in order with + or ,', async () => {
-    const { body } = await json('/api/chain/upper+reverse/hello');
-    expect(body).toEqual({ input: 'hello', style: 'upper+reverse', styles: ['upper', 'reverse'], output: 'OLLEH' });
-    expect((await json('/api/chain/lower,title,kebab/HELLO%20WORLD')).body.output).toBe('hello-world');
-    expect(await text('/api/chain/upper/hi.txt')).toBe('HI');
-    expect(await text('/api/chain/upper+reverse/hello.xml')).toContain('<styles>\n    <style>upper</style>\n    <style>reverse</style>\n  </styles>');
-  });
-
-  it('bounds intermediate output so expanding chains cannot exhaust memory', async () => {
-    const { res, body } = await json(`/api/chain/binary+binary+binary/${'a'.repeat(300)}`);
-    expect(res.status).toBe(413);
-    expect(body.error.code).toBe('output_too_long');
-    expect(body.error.message).toContain('step "binary"');
-    expect((await call('/api/chain/binary+upper/hi')).status).toBe(200);
-  });
-
-  it('caches unless random is in the chain', async () => {
-    expect((await call('/api/chain/upper/hi')).headers.get('Cache-Control')).toBe('public, max-age=86400');
-    expect((await call('/api/chain/upper+random/hi')).headers.get('Cache-Control')).toBe('no-store');
-  });
-
-  it('validates styles and length', async () => {
-    expect((await json('/api/chain/upper+nope/hi')).body.error.code).toBe('unknown_style');
-    expect((await json(`/api/chain/${Array(11).fill('upper').join('+')}/hi`)).body.error.code).toBe('chain_too_long');
-    expect((await json('/api/chain')).body.error.code).toBe('missing_styles');
-    expect((await json('/api/chain/+/hi')).body.error.code).toBe('missing_styles');
-    expect((await json('/api/chain/upper')).body.error.code).toBe('missing_text');
   });
 });
 

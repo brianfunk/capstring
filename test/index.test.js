@@ -354,6 +354,59 @@ describe('capstring', () => {
     });
   });
 
+  describe('styles added for 50', () => {
+    it('capitalize / lowerfirst change only the first code point', () => {
+      expect(capstring('hello world', 'capitalize')).toBe('Hello world');
+      expect(capstring('hELLO wORLD', 'capitalize')).toBe('HELLO wORLD');
+      expect(capstring('😀abc', 'capitalize')).toBe('😀abc');
+      expect(capstring('Hello World', 'lowerfirst')).toBe('hello World');
+      expect(capstring('HELLO', 'lowerfirst')).toBe('hELLO');
+      expect(capstring('élan', 'capitalize')).toBe('Élan');
+    });
+
+    it('ada, cobol, initials use the shared tokenizer', () => {
+      expect(capstring('hello world', 'ada')).toBe('Hello_World');
+      expect(capstring('XMLHttpRequest', 'ada')).toBe('Xml_Http_Request');
+      expect(capstring('hello world', 'cobol')).toBe('HELLO-WORLD');
+      expect(capstring('helloWorld', 'cobol')).toBe('HELLO-WORLD');
+      expect(capstring('hello world', 'initials')).toBe('H.W.');
+      expect(capstring('as soon as possible', 'initials')).toBe('A.S.A.P.');
+      expect(capstring('!!!', 'initials')).toBe('');
+    });
+
+    it('spaced and squish', () => {
+      expect(capstring('hello world', 'spaced')).toBe('h e l l o  w o r l d');
+      expect(capstring('  hi  ', 'spaced')).toBe('h i');
+      expect(capstring('🇺🇸 a', 'spaced')).toBe('🇺🇸  a');
+      expect(capstring('hello world', 'squish')).toBe('helloworld');
+      expect(capstring(' a\tb\nc ', 'squish')).toBe('abc');
+    });
+
+    it('nato', () => {
+      expect(capstring('hello world', 'nato')).toBe('Hotel Echo Lima Lima Oscar / Whiskey Oscar Romeo Lima Delta');
+      expect(capstring('SOS 1', 'nato')).toBe('Sierra Oscar Sierra / One');
+      expect(capstring('x-ray?', 'nato')).toBe('X-ray Romeo Alfa Yankee');
+      expect(capstring('日本', 'nato')).toBe('');
+    });
+
+    it('hex and base64 encode UTF-8 bytes', () => {
+      expect(capstring('hello world', 'hex')).toBe('68 65 6c 6c 6f 20 77 6f 72 6c 64');
+      expect(capstring('é', 'hex')).toBe('c3 a9');
+      expect(capstring('hello world', 'base64')).toBe('aGVsbG8gd29ybGQ=');
+      expect(capstring('é😀', 'base64')).toBe('w6nwn5iA');
+    });
+
+    it('bold, italic, script map ASCII letters (and digits for bold) only', () => {
+      expect(capstring('hello world', 'bold')).toBe('𝗵𝗲𝗹𝗹𝗼 𝘄𝗼𝗿𝗹𝗱');
+      expect(capstring('Az 09 é!', 'bold')).toBe('𝗔𝘇 𝟬𝟵 é!');
+      expect(capstring('hello world', 'italic')).toBe('𝘩𝘦𝘭𝘭𝘰 𝘸𝘰𝘳𝘭𝘥');
+      expect(capstring('Az 09', 'italic')).toBe('𝘈𝘻 09');
+      expect(capstring('hello world', 'script')).toBe('𝓱𝓮𝓵𝓵𝓸 𝔀𝓸𝓻𝓵𝓭');
+      expect(capstring('Az 09', 'script')).toBe('𝓐𝔃 09');
+      expect(capstring('1️⃣a', 'bold')).toBe('1️⃣𝗮'); // keycap stays whole
+    });
+  });
+
   describe('capstringAll', () => {
     it('returns every style in STYLES order', () => {
       const all = capstringAll('hello world');
@@ -374,8 +427,8 @@ describe('capstring', () => {
   });
 
   describe('helpers', () => {
-    it('STYLES has 37 entries and is frozen', () => {
-      expect(STYLES).toHaveLength(37);
+    it('STYLES has 50 entries and is frozen', () => {
+      expect(STYLES).toHaveLength(50);
       expect(Object.isFrozen(STYLES)).toBe(true);
     });
 

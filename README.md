@@ -21,6 +21,7 @@ ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 - **Zero dependencies** - one 17 kB file, browser-safe
 - **Unicode aware** - `Élan Vital`, `crème-brûlée`, emoji and flags survive every style
 - **Smart tokenizer** - `XMLHttpRequest` becomes `xml-http-request`, `hello_world` becomes `helloWorld`
+- **Website, HTTP API, and docs** - [capstring.netlify.app](https://capstring.netlify.app): playground, [Developer Docs](https://capstring.netlify.app/dev/), [API Reference](https://capstring.netlify.app/docs/)
 - **CLI** - `npx capstring kebab "Hello World"`
 - **TypeScript types** - autocomplete for every style name
 - **100% test coverage**
@@ -40,13 +41,12 @@ npm install capstring
 ```javascript
 import capstring from 'capstring';
 
-capstring('hello world', 'title');        // 'Hello World'
-capstring('XMLHttpRequest', 'kebab');     // 'xml-http-request'
-capstring('Crème Brûlée & Co.', 'slug');  // 'creme-brulee-co'
-capstring('hello world', 'constant');     // 'HELLO_WORLD'
-capstring('hello world', 'sponge');       // 'HeLlO WoRlD'
-capstring('hello world', 'flip');         // 'plɹoʍ ollǝɥ'
-capstring('hello world', 'hashtag');      // '#HelloWorld'
+capstring('hello world', 'title');     // 'Hello World'
+capstring('hello world', 'kebab');     // 'hello-world'
+capstring('hello world', 'constant');  // 'HELLO_WORLD'
+capstring('hello world', 'sponge');    // 'HeLlO WoRlD'
+capstring('hello world', 'flip');      // 'plɹoʍ ollǝɥ'
+capstring('hello world', 'hashtag');   // '#HelloWorld'
 ```
 
 ## CLI
@@ -63,71 +63,86 @@ Exit code `2` means a usage error (unknown style or option, missing text).
 
 ## All Styles
 
+Every style applied to `hello world`. Full explanations with more examples are in the [Developer Docs](https://capstring.netlify.app/dev/#styles).
+
 ### Case
 
-| Style | Input | Output |
-|-------|-------|--------|
-| `same` | Hello World | Hello World |
-| `none` | Hello World | *(empty)* |
-| `proper` | Hello World | Hello World *(alias of same)* |
-| `title` | élan vital | Élan Vital |
-| `sentence` | hello. world! | Hello. World! |
-| `upper` | hello world | HELLO WORLD |
-| `lower` | HELLO WORLD | hello world |
-| `swap` | Hello World | hELLO wORLD |
+| Style | `hello world` becomes |
+|-------|------------------------|
+| `same` | `hello world` |
+| `none` | *(empty string)* |
+| `proper` | `hello world` |
+| `title` | `Hello World` |
+| `sentence` | `Hello world` |
+| `upper` | `HELLO WORLD` |
+| `lower` | `hello world` |
+| `swap` | `HELLO WORLD` |
+| `capitalize` | `Hello world` |
+| `lowerfirst` | `hello world` |
 
 ### Code
 
-| Style | Input | Output |
-|-------|-------|--------|
-| `camel` | hello world | helloWorld |
-| `pascal` | hello world | HelloWorld |
-| `snake` | hello world | hello_world |
-| `kebab` | Crème Brûlée | crème-brûlée |
-| `slug` | Crème Brûlée & Co. | creme-brulee-co |
-| `constant` | hello world | HELLO_WORLD |
-| `python` | hello world | HELLO_WORLD *(alias of constant)* |
-| `dot` | hello world | hello.world |
-| `path` | hello world | hello/world |
-| `train` | hello world | Hello-World |
-| `hashtag` | hello world | #HelloWorld |
-| `acronym` | as soon as possible | ASAP |
-
-All code styles share one tokenizer: words split on whitespace, `_`, `-`, `.`, `/`, punctuation,
-and camelCase boundaries (`XMLHttpRequest` → `xml`, `http`, `request`). Letters stay attached to
-digits (`utf8`, `mp3`). Apostrophes are dropped (`don't` → `dont`).
+| Style | `hello world` becomes |
+|-------|------------------------|
+| `camel` | `helloWorld` |
+| `pascal` | `HelloWorld` |
+| `snake` | `hello_world` |
+| `kebab` | `hello-world` |
+| `slug` | `hello-world` |
+| `constant` | `HELLO_WORLD` |
+| `python` | `HELLO_WORLD` |
+| `dot` | `hello.world` |
+| `path` | `hello/world` |
+| `train` | `Hello-World` |
+| `hashtag` | `#HelloWorld` |
+| `acronym` | `HW` |
+| `ada` | `Hello_World` |
+| `cobol` | `HELLO-WORLD` |
+| `initials` | `H.W.` |
 
 ### Fun
 
-| Style | Input | Output |
-|-------|-------|--------|
-| `reverse` | hello world | dlrow olleh |
-| `sponge` | hello world | HeLlO WoRlD |
-| `mock` | hello world | hElLo wOrLd |
-| `alternate` | hello world | hElLo WoRlD *(letters only)* |
-| `crazy` | hello world | *(deterministic pseudo-random case)* |
-| `random` | hello world | *(random case, different every call)* |
-| `clap` | hello world | hello 👏 world |
-| `piglatin` | hello world | ellohay orldway |
+| Style | `hello world` becomes |
+|-------|------------------------|
+| `reverse` | `dlrow olleh` |
+| `sponge` | `HeLlO WoRlD` |
+| `mock` | `hElLo wOrLd` |
+| `alternate` | `hElLo WoRlD` |
+| `crazy` | `HEllo WorlD` |
+| `random` | *(random case, different every call)* |
+| `clap` | `hello 👏 world` |
+| `piglatin` | `ellohay orldway` |
+| `spaced` | `h e l l o  w o r l d` |
+| `squish` | `helloworld` |
+| `nato` | `Hotel Echo Lima Lima Oscar / Whiskey Oscar Romeo Lima Delta` |
 
 ### Encodings
 
-| Style | Input | Output |
-|-------|-------|--------|
-| `leet` | hello world | h3110 w0r1d |
-| `rot13` | hello | uryyb |
-| `morse` | SOS 1 | ... --- ... / .---- |
-| `binary` | hi | 01101000 01101001 |
+| Style | `hello world` becomes |
+|-------|------------------------|
+| `leet` | `h3110 w0r1d` |
+| `rot13` | `uryyb jbeyq` |
+| `morse` | `.... . .-.. .-.. --- / .-- --- .-. .-.. -..` |
+| `binary` | `01101000 01100101 01101100 01101100 01101111 00100000 01110111 01101111 01110010 01101100 01100100` |
+| `hex` | `68 65 6c 6c 6f 20 77 6f 72 6c 64` |
+| `base64` | `aGVsbG8gd29ybGQ=` |
 
 ### Unicode Art
 
-| Style | Input | Output |
-|-------|-------|--------|
-| `flip` | hello | ollǝɥ |
-| `smallcaps` | hello | ʜᴇʟʟᴏ |
-| `bubble` | hello | ⓗⓔⓛⓛⓞ |
-| `wide` | hello | ｈｅｌｌｏ |
-| `strike` | hello | h̶e̶l̶l̶o̶ |
+| Style | `hello world` becomes |
+|-------|------------------------|
+| `flip` | `plɹoʍ ollǝɥ` |
+| `smallcaps` | `ʜᴇʟʟᴏ ᴡᴏʀʟᴅ` |
+| `bubble` | `ⓗⓔⓛⓛⓞ ⓦⓞⓡⓛⓓ` |
+| `wide` | `ｈｅｌｌｏ　ｗｏｒｌｄ` |
+| `strike` | `h̶e̶l̶l̶o̶ w̶o̶r̶l̶d̶` |
+| `bold` | `𝗵𝗲𝗹𝗹𝗼 𝘄𝗼𝗿𝗹𝗱` |
+| `italic` | `𝘩𝘦𝘭𝘭𝘰 𝘸𝘰𝘳𝘭𝘥` |
+| `script` | `𝓱𝓮𝓵𝓵𝓸 𝔀𝓸𝓻𝓵𝓭` |
+
+All code styles share one tokenizer: words split on whitespace, `_`, `-`, `.`, `/`, punctuation,
+emoji, and camelCase boundaries (`XMLHttpRequest` → `xml-http-request`). Letters stay attached to
+digits (`utf8`). Apostrophes are dropped (`don't` → `dont`).
 
 ## API
 
@@ -140,7 +155,7 @@ capstring('hello world', 'title');  // 'Hello World'
 capstring('hello world');           // 'hello world' (default: same)
 capstring('');                      // ''
 capstring(123);                     // false (not a string)
-capstring('hello', 'nope');         // 'hello' (unknown style returns input)
+capstring('hello world', 'nope');   // 'hello world' (unknown style returns input)
 
 // Strict mode throws instead
 capstring(123, 'title', { strict: true });    // TypeError
@@ -157,6 +172,7 @@ import { capstringAll } from 'capstring';
 const all = capstringAll('hello world');
 all.kebab;   // 'hello-world'
 all.morse;   // '.... . .-.. .-.. --- / .-- --- .-. .-.. -..'
+all.nato;    // 'Hotel Echo Lima Lima Oscar / Whiskey Oscar Romeo Lima Delta'
 ```
 
 ### `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
@@ -181,60 +197,46 @@ capstring('Hello', style);      // string
 
 ## HTTP API
 
-Free, no key, CORS enabled, hosted at `https://capstring.netlify.app/api`.
+Free, no key, CORS enabled, hosted at `https://capstring.netlify.app/api`. Interactive reference
+with try-it-out: [capstring.netlify.app/docs](https://capstring.netlify.app/docs/).
 
 ```bash
 curl https://capstring.netlify.app/api/title/hello%20world
 # {"input":"hello world","style":"title","output":"Hello World"}
 
-curl "https://capstring.netlify.app/api/all/hello%20world?format=txt"
-# same	hello world
-# none
-# ...
+curl https://capstring.netlify.app/api/sponge/hello%20world.txt
+# HeLlO WoRlD
 
-curl https://capstring.netlify.app/api/chain/upper+reverse/hello
-# {"input":"hello","styles":["upper","reverse"],"output":"OLLEH"}
+curl -H "Accept: text/csv" https://capstring.netlify.app/api/all/hello%20world
 
 curl -X POST https://capstring.netlify.app/api/batch \
   -H "Content-Type: application/json" \
-  -d '{"style":"slug","texts":["Crème Brûlée","Hello World"]}'
+  -d '{"style":"slug","texts":["hello world","Hello World"]}'
 ```
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/styles` | style names and categories |
 | `GET /api/:style/:text` | `{ input, style, output }` |
 | `GET /api/all/:text` | every style |
-| `GET /api/chain/:styles/:text` | styles applied in order (`+` or `,` separated, max 10) |
 | `POST /api/batch` | `{ style, texts[] }` (max 100 texts) |
-| `GET /api/badge/:style/:text` | shields-style SVG badge, `?label=` to override the left side |
+| `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=` |
+| `GET /api/count/:text` | words, characters, characters without spaces |
 | `GET /api/lorem/:count` | lorem ipsum words (1 to 1000), optional `?style=` |
-| `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=`. Max 500 chars, up to 50 corrections per request |
+| `GET /api/badge/:style/:text` | shields-style SVG badge, `?label=` to override the left side |
+| `GET /api/styles` | style names and categories |
+
+Output is JSON by default. Pick another format with an extension (`.txt`, `.html`, `.xml`, `.yaml`,
+`.csv`, `.jsonp`), `?format=`, or an `Accept` header. Text is limited to 2,000 characters (500 for
+spell). Errors come back in the same format as `{ "error": { "code", "message" } }`.
 
 [![capstring badge](https://capstring.netlify.app/api/badge/sponge/hello%20world?label=capstring)](https://capstring.netlify.app)
 
-```markdown
-![sponge](https://capstring.netlify.app/api/badge/sponge/hello%20world)
-```
-
-Text is limited to 2,000 characters. Add `?format=txt` for plain text, `?pretty=1` for indented
-JSON, or `?text=` to pass text with slashes. Errors are `{ "error": { "code", "message" } }`.
-
-The previous standalone API, cAPIta, is archived and redirects here.
-
 ## Behavior notes
 
-- **Unicode**: every style iterates code points, and `reverse` / `flip` iterate grapheme clusters, so
-  emoji, flags, and combining accents stay intact. Requires `Intl.Segmenter` (Node 16+, all modern browsers).
-- **`title`** capitalizes every word, including small words like "of" and "the". Hyphens and
-  underscores break words (`stop-me` → `Stop-Me`). Apostrophes stay inside words (`don't` → `Don't`).
-- **`sentence`** capitalizes after `.`, `!`, `?` followed by whitespace. `3.14 is pi` is left alone.
-- **`slug`** is ASCII only: diacritics are folded (`é` → `e`, `ß` → `ss`), everything else becomes a
-  hyphen. Scripts with no ASCII folding (CJK, Cyrillic) produce an empty slug. Use `kebab` to keep
-  Unicode letters.
-- **`piglatin`** and **`morse`** only understand Latin letters; other characters pass through
-  (`piglatin`) or are dropped (`morse`).
-- **`random`** is the only non-deterministic style.
+Exact rules for `title`, `sentence`, `slug`, the tokenizer, and Unicode handling are documented per
+style in the [Developer Docs](https://capstring.netlify.app/dev/#styles). The short version: every
+style iterates code points, the reordering and art styles iterate grapheme clusters, `slug` is ASCII
+only, and `random` is the only non-deterministic style.
 
 ## Development
 
@@ -246,10 +248,10 @@ npm run test:coverage  # Test with coverage (100% required)
 npm run dev            # Netlify Dev: site + API at http://localhost:8888
 ```
 
-The website lives in `web/` (plain HTML/CSS/JS, no build step) and the API in
-`netlify/functions/api.js`. Both import `index.js` directly. The spellcheck endpoint's
-dependencies (`nspell`, `dictionary-en`) are devDependencies bundled into the function, so the
-npm package itself stays zero-dependency.
+The website (`web/`: playground, Developer Docs, Swagger API Reference; plain HTML/CSS/JS, no build
+step) and the API (`netlify/functions/api.js`) both import `index.js` directly. The spellcheck
+endpoint's dependencies (`nspell`, `dictionary-en`) are devDependencies bundled into the function,
+so the npm package itself stays zero-dependency.
 
 ## Contributing
 

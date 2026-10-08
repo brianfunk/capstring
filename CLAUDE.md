@@ -31,17 +31,20 @@ Single-file library plus a thin CLI:
   - `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
 - `cli.js` - `main(argv, io)` with injected I/O so it is unit-testable; `bin/capstring.js` is the shim
 - `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
-- `web/` - static site (index.html, style.css, app.js), no build step; imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
+- `web/` - static site, no build step. Playground (`index.html`, `app.js`), Swagger API Reference (`docs/`, over `openapi.json`), Developer Docs (`dev/`: single Stripe-style page, per-style docs in `dev/styles-data.js` with outputs computed live), shared header/footer/theme (`site.js`, `site.css`, `theme-init.js`). Imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
 - `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects. `nspell` and `dictionary-en` (spellcheck) are **devDependencies** on purpose: esbuild bundles them into the function and the npm package stays zero-dependency. `dictionary-en` is listed as external + included_files in `netlify.toml` because it reads its `.aff`/`.dic` files by path.
 - `netlify.toml` - publish `web/`, build copies `index.js`, bundles the function. Branch settings (production `master`, branch deploy `dev`) live in the Netlify UI, not in the file
 
 ## Supported Styles
 
-**Case:** same, none, proper, title, sentence, upper, lower, swap
-**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym
-**Fun:** reverse, sponge, mock, alternate, crazy, random, clap, piglatin
-**Encoding:** leet, rot13, morse, binary
-**Art:** flip, smallcaps, bubble, wide, strike
+**Case:** same, none, proper, title, sentence, upper, lower, swap, capitalize, lowerfirst
+**Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym, ada, cobol, initials
+**Fun:** reverse, sponge, mock, alternate, crazy, random, clap, piglatin, spaced, squish, nato
+**Encoding:** leet, rot13, morse, binary, hex, base64
+**Art:** flip, smallcaps, bubble, wide, strike, bold, italic, script
+
+Never write the style count into prose, docs, or the site; it changes. Compute it from `STYLES` where a number is needed.
+Docs and tables use `hello world` as the example everywhere; no "(alias of X)" notes.
 
 Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 
@@ -51,17 +54,13 @@ Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 2. Maintain 100% coverage (thresholds enforced): `npm run test:coverage`
 3. Run linter: `npm run lint`
 4. Update CHANGELOG.md for any user-facing changes; behavior changes get their own section
-5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts`, plus README table
+5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts` **and** `web/dev/styles-data.js` **and** the enum in `web/openapi.json`, then regenerate the README table (every table row is `hello world`)
 6. Preserve the ASCII art header
 7. Keep the npm package lean: `test/package.test.js` fails if the tarball gains a file or exceeds the size budget. Website, API, tests, and changelog never ship to npm
 
 ## Deployment
 
-Netlify site `capstring` (Brian Funk team) deploys from git: `master` is production, `dev` is a branch deploy, PRs get previews. No deploy step in GitHub Actions.
-
-## Related Projects
-
-- **cAPIta** - archived. The former standalone REST API; `capita-api.netlify.app` redirects here.
+Netlify site `capstring` (personal team) deploys from git: `master` is production, `dev` is a branch deploy, PRs get previews. No deploy step in GitHub Actions.
 
 ---
 

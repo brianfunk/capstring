@@ -13,7 +13,8 @@ export type Style =
   // Added in 1.0.0
   | 'hashtag' | 'acronym' | 'rot13' | 'flip'
   // Added in 1.1.0
-  | 'smallcaps' | 'bubble' | 'wide' | 'strike' | 'clap' | 'morse' | 'binary' | 'piglatin';
+  | 'smallcaps' | 'bubble' | 'wide' | 'strike' | 'clap' | 'morse' | 'binary' | 'piglatin'
+  | 'capitalize' | 'lowerfirst' | 'ada' | 'cobol' | 'initials' | 'spaced' | 'squish' | 'nato' | 'hex' | 'base64' | 'bold' | 'italic' | 'script';
 
 /** Style category names. */
 export type Category = 'case' | 'code' | 'fun' | 'encoding' | 'art';
