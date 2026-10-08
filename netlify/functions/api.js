@@ -32,7 +32,6 @@ import { SWAGGER_PAGE } from './swagger-page.js';
 
 export const config = { path: ['/api', '/api/*'] };
 
-const SITE = 'https://capstring.netlify.app';
 const MAX_TEXT = 2000;
 const MAX_BATCH = 100;
 const MAX_LOREM = 1000;
@@ -487,6 +486,7 @@ const spellCheck = async (text) => {
  */
 const route = async (req, format, query, segments) => {
   const [head, ...rest] = segments;
+  const origin = new URL(req.url).origin;
   const send = (payload, opts = {}) => respond(payload, { format, query, ...opts });
 
   if (head === undefined) {
@@ -495,7 +495,7 @@ const route = async (req, format, query, segments) => {
       // A browser at /api gets the interactive reference; curl and fetch get the JSON below
       return new Response(SWAGGER_PAGE, { headers: { ...CORS, 'Content-Type': CONTENT_TYPES.html, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=3600', 'Vary': 'Accept' } });
     }
-    const data = { name: pkg.name, version: pkg.version, docs: `${SITE}/api`, formats: FORMATS, endpoints: ENDPOINTS };
+    const data = { name: pkg.name, version: pkg.version, docs: `${origin}/api`, formats: FORMATS, endpoints: ENDPOINTS };
     return send({ data, text: `${pkg.name} ${pkg.version}\n${ENDPOINTS.join('\n')}`, title: 'capstring API' });
   }
 

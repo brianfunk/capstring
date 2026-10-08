@@ -53,7 +53,7 @@ describe('web/openapi.json', () => {
 
   it('the Swagger page served at /api loads the spec from where it is published', () => {
     const page = readFileSync(new URL('../netlify/functions/swagger-page.js', import.meta.url), 'utf8');
-    expect(page).toContain("url: '/openapi.json'");
+    expect(page).toContain("fetch('/openapi.json')");
     expect(page).toContain('cdnjs.cloudflare.com/ajax/libs/swagger-ui/');
     const home = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
     expect(home).toContain('href="/docs/"');

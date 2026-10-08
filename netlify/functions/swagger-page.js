@@ -25,9 +25,12 @@ export const SWAGGER_PAGE = `<!doctype html>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.min.js" crossorigin="anonymous"></script>
   <script src="/site.js"></script>
   <script>
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
+      // The spec is written against the canonical host; point "Servers" at wherever this page is served from
+      const spec = await fetch('/openapi.json').then((r) => r.json());
+      spec.servers = [{ url: location.origin + '/api', description: location.hostname }];
       window.ui = SwaggerUIBundle({
-        url: '/openapi.json',
+        spec,
         dom_id: '#swagger-ui',
         deepLinking: true,
         displayRequestDuration: true,

@@ -37,6 +37,7 @@ export default [
         fetch: 'readonly',
         localStorage: 'readonly',
         addEventListener: 'readonly',
+        NodeFilter: 'readonly',
         matchMedia: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly'

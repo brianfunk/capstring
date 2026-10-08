@@ -41,6 +41,17 @@
     });
   }
 
+  // Pages are written against the canonical host; rewrite it to wherever this copy is served from
+  // (localhost, a deploy preview, Netlify, or a custom domain) so every example URL is live.
+  const CANONICAL = 'https://capstring.netlify.app';
+  if (location.origin !== CANONICAL) {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) if (walker.currentNode.nodeValue.includes(CANONICAL)) nodes.push(walker.currentNode);
+    for (const n of nodes) n.nodeValue = n.nodeValue.replaceAll(CANONICAL, location.origin);
+    for (const a of document.querySelectorAll(`a[href^="${CANONICAL}"]`)) a.href = a.href.replace(CANONICAL, location.origin);
+  }
+
   const footer = document.querySelector('[data-site-footer]');
   if (footer) {
     footer.innerHTML = `

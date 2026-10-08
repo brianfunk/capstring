@@ -66,7 +66,7 @@ describe('GET /api', () => {
     expect(await page.text()).toContain('SwaggerUIBundle');
     expect((await call('/api/?format=html')).headers.get('Content-Type')).toBe('text/html; charset=utf-8');
     expect((await call('/api', { headers: { Accept: '*/*' } })).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
-    expect((await json('/api')).body.docs).toBe('https://capstring.netlify.app/api');
+    expect((await json('/api')).body.docs).toBe('http://localhost/api'); // derived from the request origin
   });
 });
 
