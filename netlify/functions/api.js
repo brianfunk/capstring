@@ -37,6 +37,7 @@ const MAX_BATCH = 1000;
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
 const MAX_LABEL = 100;
+const MAX_IMAGE_CHARS = 200; // svg/png draw one line; longer output is cut with an ellipsis so the canvas stays small
 const MAX_SPELL_TEXT = 500;
 const MAX_SPELL_SUGGESTIONS = 50;
 
@@ -357,7 +358,9 @@ const respond = async (payload, { format, query, status = 200, cache = true, hea
     case 'png': body = await textPng(payload.headline ?? payload.text); break;
     case 'jsonp': {
       const callback = query.get('callback') || 'callback';
-      if (!/^[\w$.]{1,64}$/.test(callback)) throw new ApiError(400, 'invalid_callback', 'callback must be a plain JavaScript identifier.');
+      if (callback.length > 64 || !/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(callback)) {
+        throw new ApiError(400, 'invalid_callback', 'callback must be a JavaScript identifier, optionally dotted (e.g. cb or app.handle).');
+      }
       body = `/**/ typeof ${callback} === 'function' && ${callback}(${json});`;
       break;
     }
@@ -400,6 +403,8 @@ const outputPayload = (data, title) => ({ data, text: String(data.output), title
  */
 const textSvg = (text) => {
   let value = oneLine(text).replace(/\\n|\\r|\\u2028|\\u2029/g, ' ') || ' ';
+  const cps = Array.from(value);
+  if (cps.length > MAX_IMAGE_CHARS) value = `${cps.slice(0, MAX_IMAGE_CHARS).join('')}…`;
   // Fullwidth forms (the `wide` style) have thin font coverage; draw them as ASCII with wide tracking instead
   const wide = /[\uFF01-\uFF5E\u3000]/u.test(value);
   if (wide) value = value.replace(/[\uFF01-\uFF5E]/gu, (ch) => String.fromCodePoint(ch.codePointAt(0) - 0xFEE0)).replace(/\u3000/gu, ' ');

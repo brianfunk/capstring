@@ -117,6 +117,16 @@ describe('output formats', () => {
     expect(await text('/api/upper/hello.JSON')).toBe('{"input":"hello","style":"upper","output":"HELLO"}');
   });
 
+  it('images cut long output at 200 characters so the canvas stays bounded', async () => {
+    const svg = await text(`/api/binary/${'a'.repeat(100)}.svg`); // 100 bytes -> 899 chars of binary
+    expect(svg).toMatch(/width="\d+"/);
+    expect(Number(/width="(\d+)"/.exec(svg)[1])).toBeLessThan(3000);
+    expect(svg).toContain('…</text>');
+    const all = await text('/api/all/hello%20world.svg'); // the whole table would be thousands of chars
+    expect(Number(/width="(\d+)"/.exec(all)[1])).toBeLessThan(3000);
+    expect((await call(`/api/binary/${'a'.repeat(100)}.png`)).status).toBe(200);
+  });
+
   it('svg draws fullwidth text as spaced ASCII so it renders without CJK fonts', async () => {
     const svg = await text('/api/wide/hi.svg');
     expect(svg).toContain('letter-spacing="0.6em"');
@@ -179,10 +189,14 @@ describe('output formats', () => {
     expect(await text('/api/upper/hello', { headers: { Accept: 'application/javascript' } })).toContain('callback(');
   });
 
-  it('rejects unsafe jsonp callbacks and never wraps errors', async () => {
+  it('rejects unsafe or malformed jsonp callbacks and never wraps errors', async () => {
     const { res, body } = await json('/api/upper/hello.jsonp?callback=alert(1)');
     expect(res.status).toBe(400);
     expect(body.error.code).toBe('invalid_callback');
+    for (const bad of ['.', '1foo', 'foo..bar', 'foo.', 'a'.repeat(65)]) {
+      expect((await call(`/api/upper/hello.jsonp?callback=${bad}`)).status, bad).toBe(400);
+    }
+    expect(await text('/api/upper/hello.jsonp?callback=app.handlers.$done')).toContain('app.handlers.$done(');
     const err = await call('/api/nope/hello.jsonp');
     expect(err.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
   });

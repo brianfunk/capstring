@@ -22,6 +22,10 @@ describe('npm package stays lean', () => {
     expect(pack.unpackedSize).toBeLessThan(MAX_UNPACKED_BYTES);
   });
 
+  it('exports the documented subpaths', () => {
+    expect(Object.keys(pkg.exports)).toEqual(['.', './cli.js', './package.json']);
+  });
+
   it('has zero runtime dependencies', () => {
     expect(pkg.dependencies ?? {}).toEqual({});
     expect(pkg.peerDependencies ?? {}).toEqual({});

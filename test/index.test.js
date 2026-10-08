@@ -89,6 +89,8 @@ describe('capstring', () => {
       expect(capstring('"hello." she said', 'sentence')).toBe('"Hello." She said');
       expect(capstring('hello. "world" (yes)! [ok]', 'sentence')).toBe('Hello. "World" (yes)! [Ok]');
       expect(capstring('“hello.” she said. ‘yes’ «ok»', 'sentence')).toBe('“Hello.” She said. ‘Yes’ «ok»');
+      expect(capstring('  HELLO WORLD', 'sentence')).toBe('  Hello world');
+      expect(capstring('\n"hello"', 'sentence')).toBe('\n"Hello"');
     });
 
     it('sentence - leaves decimals and abbreviations without spaces alone', () => {

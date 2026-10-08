@@ -383,7 +383,7 @@ const capstring = (str, style = 'same', { strict = false } = {}) => {
 
     case 'sentence':
       // Sentence case - capitalize the first letter and the first letter after . ! ? (quotes and brackets, ASCII or typographic, may sit in between)
-      return str.toLowerCase().replace(/(^["'“‘«([]*|[.!?]+["'”’»)\]]*\s+["'“‘«([]*)(\p{L})/gu, (_, lead, letter) =>
+      return str.toLowerCase().replace(/(^\s*["'“‘«([]*|[.!?]+["'”’»)\]]*\s+["'“‘«([]*)(\p{L})/gu, (_, lead, letter) =>
         lead + letter.toUpperCase()
       );
 
