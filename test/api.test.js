@@ -32,7 +32,7 @@ describe('api config', () => {
   });
 
   it('lists the supported formats', () => {
-    expect(FORMATS).toEqual(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv']);
+    expect(FORMATS).toEqual(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv', 'svg', 'png']);
   });
 });
 
@@ -117,6 +117,37 @@ describe('output formats', () => {
     expect(await text('/api/upper/hello.JSON')).toBe('{"input":"hello","style":"upper","output":"HELLO"}');
   });
 
+  it('svg draws fullwidth text as spaced ASCII so it renders without CJK fonts', async () => {
+    const svg = await text('/api/wide/hi.svg');
+    expect(svg).toContain('letter-spacing="0.6em"');
+    expect(svg).toContain('>hi</text>');
+  });
+
+  it('svg renders the result as an image', async () => {
+    const res = await call('/api/sponge/hello%20world.svg');
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+    const svg = await res.text();
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
+    expect(svg).toContain('>HeLlO WoRlD</text>');
+    expect(await text('/api/same/a%3Cb.svg')).toContain('a&lt;b');
+    expect(await text('/api/same/a%0Ab.svg')).toContain('>a b</text>');
+    expect((await call('/api/upper/hi', { headers: { Accept: 'image/svg+xml' } })).headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+    expect(await text('/api/none/hi.svg')).toContain('> </text>');
+    expect(await text('/api/count/hi.svg')).toContain('words: 1');
+    expect(await text('/api/nope/hi.svg')).toContain('unknown_style');
+  });
+
+  it('png renders the result as an image', async () => {
+    const res = await call('/api/bold/hello%20world.png');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/png');
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect([...bytes.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); // PNG signature
+    expect(bytes.length).toBeGreaterThan(500);
+    expect((await call('/api/upper/hi', { headers: { Accept: 'image/png' } })).headers.get('Content-Type')).toBe('image/png');
+    expect((await call('/api/nope/hi.png')).status).toBe(404);
+  });
+
   it('selects by ?format=', async () => {
     expect(await text('/api/upper/hello?format=txt')).toBe('HELLO');
     expect(await text('/api/upper/hello?format=yml')).toContain('output: "HELLO"');
@@ -130,7 +161,7 @@ describe('output formats', () => {
     expect((await accept('text/csv')).headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
     expect((await accept('application/yaml')).headers.get('Content-Type')).toBe('text/yaml; charset=utf-8');
     expect((await accept('*/*')).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
-    expect((await accept('image/png')).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect((await accept('image/png')).headers.get('Content-Type')).toBe('image/png');
   });
 
   it('extension beats ?format= beats Accept', async () => {
@@ -235,10 +266,10 @@ describe('GET /api/:style/:text', () => {
   });
 
   it('413s long text', async () => {
-    const { res, body } = await json(`/api/upper/${'a'.repeat(2001)}`);
+    const { res, body } = await json(`/api/upper/${'a'.repeat(10001)}`);
     expect(res.status).toBe(413);
     expect(body.error.code).toBe('text_too_long');
-    expect((await call(`/api/upper/${'a'.repeat(2000)}`)).status).toBe(200);
+    expect((await call(`/api/upper/${'a'.repeat(10000)}`)).status).toBe(200);
   });
 
   it('400s malformed percent-encoding', async () => {
@@ -317,7 +348,7 @@ describe('POST /api/batch', () => {
   });
 
   it('reports per-item problems inline', async () => {
-    const res = await post('/api/batch', { style: 'upper', texts: ['ok', 42, 'a'.repeat(2001)] });
+    const res = await post('/api/batch', { style: 'upper', texts: ['ok', 42, 'a'.repeat(10001)] });
     const body = await res.json();
     expect(body.results[1]).toEqual({ input: 42, output: null, error: 'not_a_string' });
     expect(body.results[2]).toEqual({ input: `${'a'.repeat(50)}...`, output: null, error: 'text_too_long' });
@@ -330,7 +361,7 @@ describe('POST /api/batch', () => {
     expect((await (await post('/api/batch', { style: 'nope', texts: ['a'] })).json()).error.code).toBe('unknown_style');
     expect((await (await post('/api/batch', { texts: ['a'] })).json()).error.code).toBe('unknown_style');
     expect((await (await post('/api/batch', null)).json()).error.code).toBe('unknown_style');
-    expect((await (await post('/api/batch', { style: 'upper', texts: Array(101).fill('a') })).json()).error.code).toBe('batch_too_large');
+    expect((await (await post('/api/batch', { style: 'upper', texts: Array(1001).fill('a') })).json()).error.code).toBe('batch_too_large');
   });
 
   it('rejects invalid JSON and wrong content type', async () => {
@@ -369,7 +400,7 @@ describe('GET /api/count/:text', () => {
 
   it('validates text', async () => {
     expect((await json('/api/count')).body.error.code).toBe('missing_text');
-    expect((await call(`/api/count/${'a'.repeat(2001)}`)).status).toBe(413);
+    expect((await call(`/api/count/${'a'.repeat(10001)}`)).status).toBe(413);
   });
 });
 

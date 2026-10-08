@@ -51,7 +51,7 @@ const SAMPLES = {
   },
   cli: {
     node: '// The CLI is a thin wrapper around the library:\n// cli.js exports main(argv, io) so it is testable without a process.\nimport { main } from \'capstring/cli.js\';',
-    cli: `$ npx capstring title hello world\nHello World\n\n$ npx capstring snake "hello world" --json\n{"input":"hello world","style":"snake","output":"hello_world"}\n\n$ echo "hello world" | npx capstring sponge\n${capstring('hello world', 'sponge')}\n\n$ git branch --show-current | npx capstring slug\n\n$ pbpaste | npx capstring upper | pbcopy\n\n$ npx capstring upper -- --not-a-flag\n--NOT-A-FLAG`
+    cli: `# quick start: npx runs it without installing\n$ npx capstring title hello world\nHello World\n\n# or install globally once\n$ npm install -g capstring\n$ capstring title hello world\nHello World\n\n$ capstring snake "hello world" --json\n{"input":"hello world","style":"snake","output":"hello_world"}\n\n$ echo "hello world" | capstring sponge\n${capstring('hello world', 'sponge')}\n\n$ capstring --count "hello world"\nwords: 2, chars: 11, chars (no spaces): 10, spaces: 1\n\n$ git branch --show-current | capstring slug\n\n$ pbpaste | capstring upper | pbcopy\n\n$ capstring upper -- --not-a-flag\n--NOT-A-FLAG`
   },
   typescript: {
     node: { lang: 'typescript', code: 'import capstring, { capstringAll, isValidStyle, type Style, type Category } from \'capstring\';\n\nconst style: Style = \'kebab\';          // autocompletes every style\nconst bad: Style = \'kebap\';            // error: not assignable to Style\nconst group: Category = \'encoding\';    // \'case\' | \'code\' | \'fun\' | \'encoding\' | \'art\'\n\ncapstring(\'hello world\', \'upper\');     // string\ncapstring(value as unknown, \'upper\');  // string | false\ncapstringAll(\'hello world\');           // Record<Style, string>\n\nif (isValidStyle(input)) capstring(\'hello world\', input); // input narrowed to Style' },
@@ -63,10 +63,12 @@ const SAMPLES = {
   },
   formats: {
     node: `// Pick a format with an extension, ?format=, or an Accept header\nawait fetch('${API}/title/hello%20world.txt').then((r) => r.text());       // 'Hello World'\nawait fetch('${API}/title/hello%20world?format=yaml').then((r) => r.text());\nawait fetch('${API}/title/hello%20world', { headers: { Accept: 'text/csv' } }).then((r) => r.text());`,
-    cli: `$ curl ${API}/title/hello%20world.txt\nHello World\n\n$ curl ${API}/title/hello%20world.yaml\ninput: "hello world"\nstyle: "title"\noutput: "Hello World"\n\n$ curl ${API}/title/hello%20world.csv\ninput,style,output\n"hello world","title","Hello World"\n\n$ curl -H "Accept: application/xml" ${API}/title/hello%20world\n<?xml version="1.0" encoding="UTF-8"?>\n<result>\n  <input>hello world</input>\n  <style>title</style>\n  <output>Hello World</output>\n</result>`
+    cli: `$ curl ${API}/title/hello%20world.txt\nHello World\n\n$ curl ${API}/title/hello%20world.yaml\ninput: "hello world"\nstyle: "title"\noutput: "Hello World"\n\n$ curl ${API}/title/hello%20world.csv\ninput,style,output\n"hello world","title","Hello World"\n\n$ curl -o hello.png ${API}/flip/hello%20world.png   # the result as an image (.svg too)
+
+$ curl -H "Accept: application/xml" ${API}/title/hello%20world\n<?xml version="1.0" encoding="UTF-8"?>\n<result>\n  <input>hello world</input>\n  <style>title</style>\n  <output>Hello World</output>\n</result>`
   },
   limits: {
-    node: `const res = await fetch('${API}/upper/' + 'a'.repeat(2001));\nres.status;                    // 413\n(await res.json()).error.code; // 'text_too_long'`,
+    node: `const res = await fetch('${API}/upper/' + 'a'.repeat(10001));\nres.status;                    // 413\n(await res.json()).error.code; // 'text_too_long'`,
     cli: `$ curl -i ${API}/upper/hello%20world | grep -i cache-control\ncache-control: public, max-age=86400\n\n$ curl -i ${API}/random/hello%20world | grep -i cache-control\ncache-control: no-store`
   },
   package: {
@@ -172,17 +174,17 @@ for (const [category, styles] of Object.entries(CATEGORIES)) {
 
 const tocList = document.getElementById('toc');
 const tocItems = [];
-for (const section of document.querySelectorAll('.prose section')) {
-  const heading = section.querySelector('h1, h2');
-  const level = section.classList.contains('category') ? 2 : 1;
-  const li = el('li', { class: `l${level}` }, [el('a', { href: `#${section.id}`, text: heading.textContent })]);
+const addToc = (id, label, level) => {
+  const li = el('li', { class: `l${level}` }, [el('a', { href: `#${id}`, text: label })]);
   tocList.append(li);
-  tocItems.push({ id: section.id, li, text: heading.textContent.toLowerCase() });
-  for (const entry of section.querySelectorAll('.style-entry')) {
-    const name = entry.id.replace('style-', '');
-    const li3 = el('li', { class: 'l3' }, [el('a', { href: `#${entry.id}`, text: name })]);
-    tocList.append(li3);
-    tocItems.push({ id: entry.id, li: li3, text: name });
+  tocItems.push({ id, li, text: label.toLowerCase() });
+};
+for (const section of document.querySelectorAll('.prose > section')) {
+  addToc(section.id, section.querySelector('h1, h2').textContent, 1);
+  // The Styles section nests one section per category; list each category once with its styles under it
+  for (const category of section.querySelectorAll(':scope > #style-docs > section.category')) {
+    addToc(category.id, category.querySelector('h2').textContent, 2);
+    for (const entry of category.querySelectorAll('.style-entry')) addToc(entry.id, entry.id.replace('style-', ''), 3);
   }
 }
 

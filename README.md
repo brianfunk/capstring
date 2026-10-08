@@ -52,10 +52,20 @@ capstring('hello world', 'hashtag');   // '#HelloWorld'
 ## CLI
 
 ```bash
+# no install, runs the latest version each time
+npx capstring kebab "hello world"          # hello-world
+
+# or install once and use it anywhere
+npm install -g capstring
+capstring kebab "hello world"              # hello-world
+```
+
+```bash
 npx capstring kebab "Hello World"          # hello-world
 echo "hello world" | npx capstring title   # Hello World
 npx capstring --all "hello world"          # every style, one per line
 npx capstring --list                       # style names
+npx capstring --count "hello world"        # words: 2, chars: 11, chars (no spaces): 10, spaces: 1
 npx capstring snake --json "Hello World"   # {"input":"Hello World","style":"snake","output":"hello_world"}
 ```
 
@@ -218,7 +228,7 @@ curl -X POST https://capstring.netlify.app/api/batch \
 |----------|---------|
 | `GET /api/:style/:text` | `{ input, style, output }` |
 | `GET /api/all/:text` | every style |
-| `POST /api/batch` | `{ style, texts[] }` (max 100 texts) |
+| `POST /api/batch` | `{ style, texts[] }` (max 1,000 texts) |
 | `GET /api/spell/:text` | spell-corrected text plus a `corrections` list, optional `?style=` |
 | `GET /api/count/:text` | words, characters, characters without spaces |
 | `GET /api/lorem/:count` | lorem ipsum words (1 to 1000), optional `?style=` |
@@ -226,7 +236,7 @@ curl -X POST https://capstring.netlify.app/api/batch \
 | `GET /api/styles` | style names and categories |
 
 Output is JSON by default. Pick another format with an extension (`.txt`, `.html`, `.xml`, `.yaml`,
-`.csv`, `.jsonp`), `?format=`, or an `Accept` header. Text is limited to 2,000 characters (500 for
+`.csv`, `.jsonp`, `.svg` or `.png` for the result as an image), `?format=`, or an `Accept` header. Text is limited to 10,000 characters (500 for
 spell). Errors come back in the same format as `{ "error": { "code", "message" } }`.
 
 [![capstring badge](https://capstring.netlify.app/api/badge/sponge/hello%20world?label=capstring)](https://capstring.netlify.app)
@@ -249,9 +259,9 @@ npm run dev            # Netlify Dev: site + API at http://localhost:8888
 ```
 
 The website (`web/`: playground and Developer Docs; plain HTML/CSS/JS, no build step; the Swagger API
-Reference is served by the API function at `/api`) and the API (`netlify/functions/api.js`) both import `index.js` directly. The spellcheck
-endpoint's dependencies (`nspell`, `dictionary-en`) are devDependencies bundled into the function,
-so the npm package itself stays zero-dependency.
+Reference is served by the API function at `/api`) and the API (`netlify/functions/api.js`) both import `index.js` directly. The spellcheck and PNG
+dependencies (`nspell`, `dictionary-en`, `@resvg/resvg-js`) are devDependencies bundled into the function,
+with the fonts for PNG rendering vendored in `netlify/fonts/`, so the npm package itself stays zero-dependency.
 
 ## Contributing
 

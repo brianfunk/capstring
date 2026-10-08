@@ -21,7 +21,7 @@
  *
  * Output format, in priority order: a file extension on the last path segment
  * (`/api/title/hello.txt`), `?format=`, the `Accept` header, then JSON.
- * Formats: json (default), jsonp (`?callback=`), txt, html, xml, yaml/yml, csv.
+ * Formats: json (default), jsonp (`?callback=`), txt, html, xml, yaml/yml, csv, svg and png (the output as an image).
  * `?text=` overrides the path text (lets text contain `/` or end in `.txt`). `?pretty=1` indents JSON.
  * @module capstring/api
  */
@@ -32,8 +32,8 @@ import { SWAGGER_PAGE } from './swagger-page.js';
 
 export const config = { path: ['/api', '/api/*'] };
 
-const MAX_TEXT = 2000;
-const MAX_BATCH = 100;
+const MAX_TEXT = 10000;
+const MAX_BATCH = 1000;
 const MAX_LOREM = 1000;
 const DEFAULT_LOREM = 50;
 const MAX_LABEL = 100;
@@ -44,7 +44,7 @@ const MAX_SPELL_SUGGESTIONS = 50;
 export const RESERVED = Object.freeze(['styles', 'all', 'batch', 'count', 'lorem', 'spell', 'badge']);
 
 /** Supported output formats (`yml` is accepted as an alias of `yaml`) */
-export const FORMATS = Object.freeze(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv']);
+export const FORMATS = Object.freeze(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv', 'svg', 'png']);
 
 const ENDPOINTS = [
   'GET /api/styles',
@@ -71,7 +71,9 @@ const CONTENT_TYPES = {
   html: 'text/html; charset=utf-8',
   xml: 'application/xml; charset=utf-8',
   yaml: 'text/yaml; charset=utf-8',
-  csv: 'text/csv; charset=utf-8'
+  csv: 'text/csv; charset=utf-8',
+  svg: 'image/svg+xml; charset=utf-8',
+  png: 'image/png'
 };
 
 /** Accept header media types mapped to formats, checked in the order the client lists them */
@@ -86,7 +88,9 @@ const ACCEPT_TYPES = {
   'text/yaml': 'yaml',
   'application/yaml': 'yaml',
   'application/x-yaml': 'yaml',
-  'text/csv': 'csv'
+  'text/csv': 'csv',
+  'image/svg+xml': 'svg',
+  'image/png': 'png'
 };
 
 /** Lorem Ipsum base text */
@@ -246,7 +250,7 @@ const parsePath = (pathname) => {
   const segments = pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean).map(decode);
   let ext = null;
   if (segments.length) {
-    const match = /^(.+)\.(json|jsonp|txt|html|xml|yaml|yml|csv)$/is.exec(segments[segments.length - 1]);
+    const match = /^(.+)\.(json|jsonp|txt|html|xml|yaml|yml|csv|svg|png)$/is.exec(segments[segments.length - 1]);
     if (match) {
       segments[segments.length - 1] = match[1];
       ext = match[2].toLowerCase();
@@ -344,12 +348,13 @@ const noExtraSegments = (rest) => {
  * Build the response in the requested format with CORS and caching headers
  * @param {Payload} payload - Endpoint result
  * @param {{ format: string, query: URLSearchParams, status?: number, cache?: boolean, headers?: Record<string,string> }} ctx - Response context
- * @returns {Response} Response
+ * @returns {Promise<Response>} Response
  */
-const respond = (payload, { format, query, status = 200, cache = true, headers = {} }) => {
+const respond = async (payload, { format, query, status = 200, cache = true, headers = {} }) => {
   const json = JSON.stringify(payload.data, null, query.has('pretty') ? 2 : 0);
   let body;
   switch (format) {
+    case 'png': body = await textPng(payload.headline ?? payload.text); break;
     case 'jsonp': {
       const callback = query.get('callback') || 'callback';
       if (!/^[\w$.]{1,64}$/.test(callback)) throw new ApiError(400, 'invalid_callback', 'callback must be a plain JavaScript identifier.');
@@ -361,6 +366,7 @@ const respond = (payload, { format, query, status = 200, cache = true, headers =
     case 'xml': body = `<?xml version="1.0" encoding="UTF-8"?>\n${toXml(payload.data, 'result')}`; break;
     case 'yaml': body = toYaml(payload.data); break;
     case 'csv': body = toCsv(payload.data); break;
+    case 'svg': body = textSvg(payload.headline ?? payload.text); break;
     default: body = json;
   }
   return new Response(body, {
@@ -383,6 +389,72 @@ const respond = (payload, { format, query, status = 200, cache = true, headers =
  * @returns {Payload} Payload
  */
 const outputPayload = (data, title) => ({ data, text: String(data.output), title, headline: String(data.output) });
+
+// ========== Images ==========
+
+/**
+ * Render text as a standalone SVG image (the `svg` output format): one line, monospace,
+ * sized to the text, transparent background, so it drops into an <img> or a README.
+ * @param {string} text - Text to render (line breaks collapse to spaces)
+ * @returns {string} SVG markup
+ */
+const textSvg = (text) => {
+  let value = oneLine(text).replace(/\\n|\\r|\\u2028|\\u2029/g, ' ') || ' ';
+  // Fullwidth forms (the `wide` style) have thin font coverage; draw them as ASCII with wide tracking instead
+  const wide = /[\uFF01-\uFF5E\u3000]/u.test(value);
+  if (wide) value = value.replace(/[\uFF01-\uFF5E]/gu, (ch) => String.fromCodePoint(ch.codePointAt(0) - 0xFEE0)).replace(/\u3000/gu, ' ');
+  const fontSize = 20;
+  const advance = fontSize * (wide ? 1.2 : 0.62);
+  const width = Math.max(Math.round(Array.from(value).length * advance + 24), 40);
+  const height = fontSize + 20;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(value)}">
+  <title>${escapeXml(value)}</title>
+  <text x="12" y="${fontSize + 8}" font-family="DejaVu Sans Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="${fontSize}"${wide ? ' letter-spacing="0.6em"' : ''} fill="#6d28d9">${escapeXml(value)}</text>
+</svg>`;
+};
+
+/** Vendored fonts (netlify/fonts): a monospace base plus Noto blocks for the Unicode art styles and emoji */
+const FONT_FILES = ['DejaVuSansMono.ttf', 'DejaVuSans.ttf', 'NotoSansMath-Regular.ttf', 'NotoSansSymbols-Regular.ttf', 'NotoSansSymbols2-Regular.ttf', 'NotoEmoji-Regular.ttf'];
+
+/** @type {Promise<{ Resvg: typeof import('@resvg/resvg-js').Resvg, fontFiles: string[] }>|null} */
+let rasterizerPromise = null;
+
+/**
+ * Lazily load the SVG rasterizer and the vendored fonts (only the `png` format pays for it).
+ * Serverless hosts ship no fonts, so they ride along via `included_files`; the directory is
+ * resolved from the function file first, then from the working directory.
+ * @returns {Promise<{ Resvg: typeof import('@resvg/resvg-js').Resvg, fontFiles: string[] }>} Rasterizer and font paths
+ */
+const getRasterizer = () => {
+  rasterizerPromise ??= Promise.all([import('@resvg/resvg-js'), import('node:fs'), import('node:path'), import('node:url')])
+    .then(([{ Resvg }, fs, path, url]) => {
+      const here = path.dirname(url.fileURLToPath(import.meta.url));
+      const candidates = [path.join(here, '..', 'fonts'), path.join(here, 'fonts'), path.join(process.cwd(), 'netlify', 'fonts')];
+      const dir = candidates.find((d) => fs.existsSync(path.join(d, FONT_FILES[0])));
+      /* c8 ignore next -- only when the deploy is missing netlify/fonts */
+      if (!dir) throw new Error(`capstring api: fonts directory not found, tried ${candidates.join(', ')}`);
+      return { Resvg, fontFiles: FONT_FILES.map((f) => path.join(dir, f)) };
+    })
+    /* c8 ignore start -- only reachable when the native binary or fonts are missing from the deploy */
+    .catch((err) => {
+      rasterizerPromise = null;
+      throw err;
+    });
+    /* c8 ignore stop */
+  return rasterizerPromise;
+};
+
+/**
+ * Render text as a PNG at 2x for crisp display
+ * @param {string} text - Text to render
+ * @returns {Promise<Uint8Array>} PNG bytes
+ */
+const textPng = async (text) => {
+  const { Resvg, fontFiles } = await getRasterizer();
+  const svg = textSvg(text);
+  const resvg = new Resvg(svg, { font: { fontFiles, loadSystemFonts: false, defaultFontFamily: 'DejaVu Sans Mono' }, fitTo: { mode: 'zoom', value: 2 } });
+  return resvg.render().asPng();
+};
 
 // ========== Badge ==========
 

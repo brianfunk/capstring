@@ -11,9 +11,10 @@
 
 [functions]
   node_bundler = "esbuild"
-  # dictionary-en reads its .aff/.dic files by path at runtime, so ship it unbundled
-  external_node_modules = ["dictionary-en"]
-  included_files = ["node_modules/dictionary-en/**"]
+  # dictionary-en reads its .aff/.dic files by path at runtime, so ship it unbundled.
+  # @resvg/resvg-js is a native binary and dejavu-fonts-ttf is read by path; ship both unbundled (png format)
+  external_node_modules = ["dictionary-en", "@resvg/resvg-js", "@resvg/resvg-js-linux-x64-gnu"]
+  included_files = ["node_modules/dictionary-en/**", "node_modules/@resvg/resvg-js/**", "node_modules/@resvg/resvg-js-linux-x64-gnu/**", "netlify/fonts/**"]
 
 [dev]
   publish = "web"

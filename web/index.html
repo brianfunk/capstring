@@ -42,6 +42,8 @@
         <option value="yaml">yaml</option>
         <option value="csv">csv</option>
         <option value="jsonp">jsonp</option>
+        <option value="svg">svg</option>
+        <option value="png">png</option>
       </select>
       <button id="copy-curl" type="button">Copy curl</button>
     </p>
@@ -56,7 +58,7 @@
         <tbody>
           <tr><td><code>GET /api/:style/:text</code></td><td><code>{ input, style, output }</code></td></tr>
           <tr><td><code>GET /api/all/:text</code></td><td>every style at once</td></tr>
-          <tr><td><code>POST /api/batch</code></td><td>body <code>{ "style": "kebab", "texts": ["a", "b"] }</code> (max 100)</td></tr>
+          <tr><td><code>POST /api/batch</code></td><td>body <code>{ "style": "kebab", "texts": ["a", "b"] }</code> (max 1,000)</td></tr>
           <tr><td><code>GET /api/spell/:text</code></td><td>spell-corrected text and a list of corrections, optional <code>?style=</code> (max 500 chars, 50 corrections)</td></tr>
           <tr><td><code>GET /api/count/:text</code></td><td>words, characters, characters without spaces</td></tr>
           <tr><td><code>GET /api/lorem/:count</code></td><td>lorem ipsum, 1 to 1000 words, optional <code>?style=</code></td></tr>
@@ -65,9 +67,10 @@
         </tbody>
       </table>
       <h3>Output formats</h3>
-      <p>JSON by default. Pick another with a file extension (<code>/api/title/hello.txt</code>), a query (<code>?format=txt</code>), or an <code>Accept</code> header. The extension wins when more than one is given. Formats: <code>json</code>, <code>txt</code>, <code>html</code>, <code>xml</code>, <code>yaml</code>, <code>csv</code>, <code>jsonp</code> (<code>?callback=</code>).</p>
+      <p>JSON by default. Pick another with a file extension (<code>/api/title/hello.txt</code>), a query (<code>?format=txt</code>), or an <code>Accept</code> header. The extension wins when more than one is given. Formats: <code>json</code>, <code>txt</code>, <code>html</code>, <code>xml</code>, <code>yaml</code>, <code>csv</code>, <code>jsonp</code> (<code>?callback=</code>), <code>svg</code> and <code>png</code> (the result as an image).</p>
       <pre><code>curl https://capstring.netlify.app/api/title/hello%20world
 curl https://capstring.netlify.app/api/sponge/hello%20world.txt
+curl -o hello.png https://capstring.netlify.app/api/flip/hello%20world.png
 curl -H "Accept: text/csv" https://capstring.netlify.app/api/all/hello%20world
 curl https://capstring.netlify.app/api/title/hello%20world.yaml
 curl -X POST https://capstring.netlify.app/api/batch \
