@@ -4,11 +4,19 @@ export default [
   js.configs.recommended,
   {
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        Intl: 'readonly',
+        TextEncoder: 'readonly',
+        btoa: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly'
       }
     },
     rules: {
@@ -18,6 +26,25 @@ export default [
     }
   },
   {
-    ignores: ['node_modules/**', 'coverage/**']
+    files: ['web/**/*.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        fetch: 'readonly',
+        localStorage: 'readonly',
+        addEventListener: 'readonly',
+        NodeFilter: 'readonly',
+        matchMedia: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly'
+      }
+    }
+  },
+  {
+    ignores: ['node_modules/**', 'coverage/**', 'web/capstring.js', '.netlify/**']
   }
 ];

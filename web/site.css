@@ -1,0 +1,71 @@
+/* Shared header, footer, and color tokens for every page. Theme is chosen by /theme-init.js, which sets
+   <html data-theme="light|dark"> before first paint (system preference unless the visitor picked one). */
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --card: #fff;
+  --border: #e2e2e2;
+  --accent: #6d28d9;
+  --accent-soft: #ede9fe;
+  --accent-2: #0d9488;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #111317;
+  --fg: #ececec;
+  --muted: #9a9a9a;
+  --card: #1b1e24;
+  --border: #2c3038;
+  --accent: #a78bfa;
+  --accent-soft: #2e1065;
+  --accent-2: #2dd4bf;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+
+.site-shell { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+[data-site-header] {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.site-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; }
+.site-brand img { width: 32px; height: 32px; }
+.site-wordmark { font-family: var(--mono); font-weight: 700; font-size: 1.25rem; letter-spacing: 0.02em; }
+.site-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.site-nav a:hover { color: var(--fg); background: var(--card); }
+.site-nav a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+.site-links { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.site-links a, .site-links button { color: var(--muted); display: inline-flex; padding: 6px; border-radius: 8px; background: none; border: 0; cursor: pointer; font: inherit; }
+.site-links a:hover, .site-links button:hover { color: var(--fg); background: var(--card); }
+.site-links button:focus-visible, .site-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle .sun, :root[data-theme="dark"] .theme-toggle .moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .sun { display: inline; }
+
+[data-site-footer] {
+  margin-top: 48px;
+  padding: 20px 0 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 10px; }
+.site-footer-links a { color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.site-footer-links a:hover { color: var(--fg); }
+.site-copyright { margin: 0; }
+
+@media (max-width: 600px) {
+  .site-links { margin-left: 0; }
+}

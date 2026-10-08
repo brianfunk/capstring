@@ -1,0 +1,1237 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "capstring API",
+    "version": "1.1.0",
+    "summary": "CaPiTaLiZe StRiNgS over HTTP.",
+    "description": "Free, no API key, CORS enabled, cacheable.\n\n**Output format** is chosen, in priority order, by a file extension on the last path segment (`/api/title/hello.txt`), the `format` query parameter, the `Accept` header, and finally JSON. Formats: `json`, `txt`, `html`, `xml`, `yaml` (`yml`), `csv`, `jsonp` (`?callback=`), `svg` and `png` (the result rendered as an image, handy in a README). Errors come back in the same format with a matching HTTP status.\n\nText goes in the path. Use `?text=` instead when it contains slashes or ends in a format extension. Add `?pretty=1` for indented JSON.\n\nPowered by the [capstring](https://www.npmjs.com/package/capstring) npm package. Source on [GitHub](https://github.com/brianfunk/capstring).",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://capstring.netlify.app/api",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:8888/api",
+      "description": "Netlify Dev (npm run dev)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "transform",
+      "description": "Turn text into one, several, or every style"
+    },
+    {
+      "name": "text",
+      "description": "Spell check, counts, and placeholder text"
+    },
+    {
+      "name": "meta",
+      "description": "Service and style information"
+    },
+    {
+      "name": "badge",
+      "description": "SVG badges for READMEs"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Service info",
+        "operationId": "getInfo",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Name, version, formats, and endpoint list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Info"
+                },
+                "example": {
+                  "name": "capstring",
+                  "version": "1.1.0",
+                  "docs": "https://capstring.netlify.app/#api",
+                  "formats": [
+                    "json",
+                    "jsonp",
+                    "txt",
+                    "html",
+                    "xml",
+                    "yaml",
+                    "csv"
+                  ],
+                  "endpoints": [
+                    "GET /api/styles",
+                    "GET /api/:style/:text"
+                  ]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "List every style",
+        "operationId": "getStyles",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Style names in canonical order plus category groupings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Styles"
+                },
+                "example": {
+                  "count": 50,
+                  "styles": [
+                    "same",
+                    "none",
+                    "proper",
+                    "title"
+                  ],
+                  "categories": {
+                    "case": [
+                      "same",
+                      "none",
+                      "proper",
+                      "title",
+                      "sentence",
+                      "upper",
+                      "lower",
+                      "swap"
+                    ]
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "One style name per line"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{style}/{text}": {
+      "get": {
+        "tags": [
+          "transform"
+        ],
+        "summary": "Transform text into one style",
+        "operationId": "transform",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/style"
+          },
+          {
+            "$ref": "#/components/parameters/text"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/textQuery"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The transformed text",
+            "headers": {
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transform"
+                },
+                "example": {
+                  "input": "hello world",
+                  "style": "title",
+                  "output": "Hello World"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Hello World"
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transform"
+                },
+                "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<result>\n  <input>hello world</input>\n  <style>title</style>\n  <output>Hello World</output>\n</result>"
+              },
+              "text/yaml": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "input: \"hello world\"\nstyle: \"title\"\noutput: \"Hello World\""
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "input,style,output\n\"hello world\",\"title\",\"Hello World\""
+              },
+              "application/javascript": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "/**/ typeof callback === 'function' && callback({\"input\":\"hello world\",\"style\":\"title\",\"output\":\"Hello World\"});"
+              },
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...><text ...>Hello World</text></svg>"
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownStyle"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLong"
+          }
+        }
+      }
+    },
+    "/all/{text}": {
+      "get": {
+        "tags": [
+          "transform"
+        ],
+        "summary": "Transform text into every style",
+        "operationId": "transformAll",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/text"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/textQuery"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A map of style name to output, in canonical order. Never cached because `random` is included.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/All"
+                },
+                "example": {
+                  "input": "hello world",
+                  "count": 37,
+                  "results": {
+                    "same": "hello world",
+                    "title": "Hello World",
+                    "kebab": "hello-world"
+                  }
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "`style<TAB>output` per line; line breaks inside outputs are escaped"
+                },
+                "example": "same\thello world\nnone\t\ntitle\tHello World"
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "One row per style"
+                },
+                "example": "style,output\n\"same\",\"hello world\"\n\"title\",\"Hello World\""
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLong"
+          }
+        }
+      }
+    },
+    "/batch": {
+      "post": {
+        "tags": [
+          "transform"
+        ],
+        "summary": "Transform up to 1,000 texts with one style",
+        "operationId": "batch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              },
+              "example": {
+                "style": "kebab",
+                "texts": [
+                  "Hello World",
+                  "XMLHttpRequest"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One result per input. Items that are not strings or exceed 10,000 characters get an inline `error` instead of failing the whole request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                },
+                "example": {
+                  "style": "kebab",
+                  "count": 2,
+                  "results": [
+                    {
+                      "input": "Hello World",
+                      "output": "hello-world"
+                    },
+                    {
+                      "input": "XMLHttpRequest",
+                      "output": "xml-http-request"
+                    }
+                  ]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "One output per line"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "`input,output,error` rows"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json`, `missing_texts`, or `batch_too_large`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownStyle"
+          },
+          "415": {
+            "description": "Body was not sent as `application/json`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The batch's texts total more than 100,000 characters (`batch_too_large`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spell/{text}": {
+      "get": {
+        "tags": [
+          "text"
+        ],
+        "summary": "Spell-correct English text",
+        "description": "Hunspell (en_US) corrections with capitalization, punctuation, and contractions preserved. At most 500 characters and 50 corrections per request; `limited` is `true` when the correction budget ran out.",
+        "operationId": "spell",
+        "parameters": [
+          {
+            "name": "text",
+            "in": "path",
+            "required": true,
+            "description": "Text to correct, URL-encoded, up to 500 characters",
+            "schema": {
+              "type": "string",
+              "maxLength": 500,
+              "example": "helo wrld"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/styleQuery"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/textQuery"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Corrected text and what changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Spell"
+                },
+                "example": {
+                  "input": "helo speling",
+                  "style": null,
+                  "output": "hello spelling",
+                  "corrections": [
+                    {
+                      "from": "helo",
+                      "to": "hello"
+                    },
+                    {
+                      "from": "speling",
+                      "to": "spelling"
+                    }
+                  ],
+                  "limited": false
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "hello spelling"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownStyle"
+          },
+          "413": {
+            "description": "Text over 500 characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/count/{text}": {
+      "get": {
+        "tags": [
+          "text"
+        ],
+        "summary": "Count words and characters",
+        "operationId": "count",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/text"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/textQuery"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Counts (characters are grapheme clusters, so an emoji, a flag, or an accented letter counts once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Count"
+                },
+                "example": {
+                  "input": "hello world",
+                  "words": 2,
+                  "characters": 11,
+                  "charactersNoSpaces": 10,
+                  "spaces": 1
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "words: 2, chars: 11, chars (no spaces): 10, spaces: 1"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLong"
+          }
+        }
+      }
+    },
+    "/lorem/{count}": {
+      "get": {
+        "tags": [
+          "text"
+        ],
+        "summary": "Generate lorem ipsum",
+        "operationId": "lorem",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "path",
+            "required": true,
+            "description": "Number of words, 1 to 1000 (omit the segment entirely for 50)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 10
+            }
+          },
+          {
+            "$ref": "#/components/parameters/styleQuery"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/pretty"
+          },
+          {
+            "$ref": "#/components/parameters/callback"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Placeholder text, capitalized and ending in a period, optionally run through a style",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lorem"
+                },
+                "example": {
+                  "count": 3,
+                  "style": null,
+                  "output": "Lorem ipsum dolor."
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Lorem ipsum dolor."
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_count` (not an integer from 1 to 1000)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownStyle"
+          }
+        }
+      }
+    },
+    "/badge/{style}/{text}": {
+      "get": {
+        "tags": [
+          "badge"
+        ],
+        "summary": "SVG badge with the transformed text",
+        "description": "A shields.io-style flat badge rendered locally. Embed it in a README: `![sponge](https://capstring.netlify.app/api/badge/sponge/hello%20world)`.",
+        "operationId": "badge",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/style"
+          },
+          {
+            "$ref": "#/components/parameters/text"
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "description": "Left-hand label (defaults to the style name), up to 100 characters",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "capstring"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/textQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SVG image",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`missing_text` or `label_too_long`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/UnknownStyle"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLong"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "style": {
+        "name": "style",
+        "in": "path",
+        "required": true,
+        "description": "A style name from `/api/styles`",
+        "schema": {
+          "$ref": "#/components/schemas/StyleName"
+        }
+      },
+      "styleQuery": {
+        "name": "style",
+        "in": "query",
+        "required": false,
+        "description": "Optional style applied to the result",
+        "schema": {
+          "$ref": "#/components/schemas/StyleName"
+        }
+      },
+      "text": {
+        "name": "text",
+        "in": "path",
+        "required": true,
+        "description": "Text to transform, URL-encoded, up to 10,000 characters. May contain `/`; extra segments are joined back with slashes. The host caps GET URLs at about 8 KB, so send longer text through POST /batch.",
+        "schema": {
+          "type": "string",
+          "maxLength": 10000,
+          "example": "hello world"
+        }
+      },
+      "textQuery": {
+        "name": "text",
+        "in": "query",
+        "required": false,
+        "description": "Overrides the path text. Use it when the text contains slashes or ends in a format extension.",
+        "schema": {
+          "type": "string",
+          "maxLength": 10000
+        }
+      },
+      "format": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "description": "Output format. A file extension on the path (`.txt`) takes precedence; an `Accept` header is used when neither is given. `svg` and `png` render the result as an image.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "json",
+            "jsonp",
+            "txt",
+            "html",
+            "xml",
+            "yaml",
+            "yml",
+            "csv",
+            "svg",
+            "png"
+          ]
+        }
+      },
+      "pretty": {
+        "name": "pretty",
+        "in": "query",
+        "required": false,
+        "description": "Indent JSON output when present",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "1"
+          ]
+        }
+      },
+      "callback": {
+        "name": "callback",
+        "in": "query",
+        "required": false,
+        "description": "JSONP callback name (only with the `jsonp` format); defaults to `callback`",
+        "schema": {
+          "type": "string",
+          "pattern": "^[\\w$.]{1,64}$",
+          "example": "cb"
+        }
+      }
+    },
+    "headers": {
+      "CacheControl": {
+        "description": "`public, max-age=86400` for deterministic results, `no-store` when the `random` style is involved",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "`missing_text`, `bad_encoding`, `invalid_format`, or `invalid_callback`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "missing_text",
+                "message": "Provide text in the path (/api/<style>/<text>) or as ?text=."
+              }
+            }
+          }
+        }
+      },
+      "UnknownStyle": {
+        "description": "Unknown style name; the valid list is included",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "unknown_style",
+                "message": "Unknown style \"nope\". See /api/styles.",
+                "styles": [
+                  "same",
+                  "none",
+                  "proper"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "TooLong": {
+        "description": "Text over 10,000 characters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "text_too_long",
+                "message": "Text must be at most 10000 characters."
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "StyleName": {
+        "type": "string",
+        "enum": [
+          "same",
+          "none",
+          "proper",
+          "title",
+          "sentence",
+          "upper",
+          "lower",
+          "swap",
+          "camel",
+          "pascal",
+          "snake",
+          "kebab",
+          "slug",
+          "constant",
+          "python",
+          "dot",
+          "path",
+          "train",
+          "leet",
+          "reverse",
+          "sponge",
+          "mock",
+          "alternate",
+          "crazy",
+          "random",
+          "hashtag",
+          "acronym",
+          "rot13",
+          "flip",
+          "smallcaps",
+          "bubble",
+          "wide",
+          "strike",
+          "clap",
+          "morse",
+          "binary",
+          "piglatin",
+          "capitalize",
+          "lowerfirst",
+          "ada",
+          "cobol",
+          "initials",
+          "spaced",
+          "squish",
+          "nato",
+          "hex",
+          "base64",
+          "bold",
+          "italic",
+          "script"
+        ],
+        "example": "title"
+      },
+      "Info": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "docs": {
+            "type": "string",
+            "format": "uri"
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "docs",
+          "formats",
+          "endpoints"
+        ]
+      },
+      "Styles": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StyleName"
+            }
+          },
+          "categories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/StyleName"
+              }
+            }
+          }
+        },
+        "required": [
+          "count",
+          "styles",
+          "categories"
+        ]
+      },
+      "Transform": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/StyleName"
+          },
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "style",
+          "output"
+        ]
+      },
+      "All": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Keyed by style name in canonical order"
+          }
+        },
+        "required": [
+          "input",
+          "count",
+          "results"
+        ]
+      },
+      "BatchRequest": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "$ref": "#/components/schemas/StyleName"
+          },
+          "texts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 10000
+            },
+            "minItems": 1,
+            "maxItems": 1000
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Accepted as an alias of `texts`"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
+      "BatchResponse": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "$ref": "#/components/schemas/StyleName"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "input": {},
+                "output": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "error": {
+                  "type": "string",
+                  "enum": [
+                    "not_a_string",
+                    "text_too_long"
+                  ]
+                }
+              },
+              "required": [
+                "input",
+                "output"
+              ]
+            }
+          }
+        },
+        "required": [
+          "style",
+          "count",
+          "results"
+        ]
+      },
+      "Spell": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "style": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StyleName"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "type": "string"
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ]
+            }
+          },
+          "limited": {
+            "type": "boolean",
+            "description": "True when more than 50 unknown words were found and the rest were left unchanged"
+          }
+        },
+        "required": [
+          "input",
+          "style",
+          "output",
+          "corrections",
+          "limited"
+        ]
+      },
+      "Count": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "words": {
+            "type": "integer"
+          },
+          "characters": {
+            "type": "integer"
+          },
+          "charactersNoSpaces": {
+            "type": "integer"
+          },
+          "spaces": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input",
+          "words",
+          "characters",
+          "charactersNoSpaces",
+          "spaces"
+        ]
+      },
+      "Lorem": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "style": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StyleName"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "style",
+          "output"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "missing_text",
+                  "text_too_long",
+                  "unknown_style",
+                  "invalid_format",
+                  "invalid_callback",
+                  "bad_encoding",
+                  "invalid_json",
+                  "missing_texts",
+                  "batch_too_large",
+                  "unsupported_media_type",
+                  "invalid_count",
+                  "label_too_long",
+                  "method_not_allowed",
+                  "not_found",
+                  "internal_error"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "styles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Present on `unknown_style`"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  }
+}
