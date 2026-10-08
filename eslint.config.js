@@ -11,6 +11,7 @@ export default [
         process: 'readonly',
         Intl: 'readonly',
         TextEncoder: 'readonly',
+        btoa: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
         Request: 'readonly',
