@@ -717,7 +717,7 @@
         "name": "text",
         "in": "path",
         "required": true,
-        "description": "Text to transform, URL-encoded, up to 10,000 characters (use ?text= or POST /batch for long text). May contain `/`; extra segments are joined back with slashes.",
+        "description": "Text to transform, URL-encoded, up to 10,000 characters. May contain `/`; extra segments are joined back with slashes. The host caps GET URLs at about 8 KB, so send longer text through POST /batch.",
         "schema": {
           "type": "string",
           "maxLength": 10000,
