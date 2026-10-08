@@ -10,14 +10,14 @@
 
 # capstring
 
-> CaPiTaLiZe StRiNgS in 37 ways!
+> CaPiTaLiZe StRiNgS!
 
 A small, serious, zero-dependency library for turning text into any case, code convention, or
 ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 
 ## Features
 
-- **37 transformation styles** - case, code conventions, encodings, and Unicode art
+- **Every style you need** - case, code conventions, encodings, and Unicode art
 - **Zero dependencies** - one 17 kB file, browser-safe
 - **Unicode aware** - `Élan Vital`, `crème-brûlée`, emoji and flags survive every style
 - **Smart tokenizer** - `XMLHttpRequest` becomes `xml-http-request`, `hello_world` becomes `helloWorld`
@@ -27,7 +27,7 @@ ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 
 ## Try it online
 
-**[capstring.netlify.app](https://capstring.netlify.app)** - type anything, see all 37 styles, click to copy.
+**[capstring.netlify.app](https://capstring.netlify.app)** - type anything, see every style, click to copy.
 
 ## Installation
 
@@ -61,7 +61,7 @@ npx capstring snake --json "Hello World"   # {"input":"Hello World","style":"sna
 
 Exit code `2` means a usage error (unknown style or option, missing text).
 
-## All 37 Styles
+## All Styles
 
 ### Case
 
@@ -166,7 +166,7 @@ import { getStyles, isValidStyle, STYLES, CATEGORIES } from 'capstring';
 
 getStyles();              // ['same', 'none', 'proper', ...] (fresh copy)
 isValidStyle('kebab');    // true
-STYLES.length;            // 37 (frozen)
+STYLES;                   // frozen array of every style name
 CATEGORIES.art;           // ['flip', 'smallcaps', 'bubble', 'wide', 'strike'] (frozen)
 ```
 
@@ -175,7 +175,7 @@ CATEGORIES.art;           // ['flip', 'smallcaps', 'bubble', 'wide', 'strike'] (
 ```typescript
 import capstring, { type Style } from 'capstring';
 
-const style: Style = 'kebab';   // autocompletes all 37 names
+const style: Style = 'kebab';   // autocompletes every style name
 capstring('Hello', style);      // string
 ```
 

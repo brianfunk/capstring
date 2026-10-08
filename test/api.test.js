@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import handler, { config, RESERVED } from '../netlify/functions/api.js';
+import handler, { config, RESERVED, FORMATS } from '../netlify/functions/api.js';
 import { STYLES, CATEGORIES } from '../index.js';
 
 /**
@@ -15,6 +15,9 @@ const json = async (path, init) => {
   return { res, body: await res.json() };
 };
 
+/** Call and read text */
+const text = async (path, init) => (await call(path, init)).text();
+
 const post = (path, body, headers = { 'Content-Type': 'application/json' }) =>
   call(path, { method: 'POST', headers, body: typeof body === 'string' ? body : JSON.stringify(body) });
 
@@ -24,8 +27,12 @@ describe('api config', () => {
   });
 
   it('no style name collides with a reserved endpoint segment', () => {
-    expect(RESERVED).toEqual(['styles', 'all', 'chain', 'badge', 'lorem', 'spell', 'batch']);
+    expect(RESERVED).toEqual(['styles', 'all', 'chain', 'batch', 'count', 'lorem', 'spell', 'badge']);
     expect(STYLES.filter((s) => RESERVED.includes(s))).toEqual([]);
+  });
+
+  it('lists the supported formats', () => {
+    expect(FORMATS).toEqual(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv']);
   });
 });
 
@@ -35,16 +42,22 @@ describe('GET /api', () => {
     expect(res.status).toBe(200);
     expect(body.name).toBe('capstring');
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(body.formats).toEqual([...FORMATS]);
     expect(body.endpoints).toContain('POST /api/batch');
-    expect(body.endpoints.some((e) => e.startsWith('GET /api/spell/:text'))).toBe(true);
+    expect(body.endpoints).toContain('GET /api/count/:text');
     expect((await json('/api/')).body.name).toBe('capstring');
   });
 
-  it('sets CORS and cache headers', async () => {
+  it('sets CORS, cache, and Vary headers', async () => {
     const res = await call('/api');
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
     expect(res.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(res.headers.get('Vary')).toBe('Accept');
+  });
+
+  it('honours txt', async () => {
+    expect(await text('/api?format=txt')).toMatch(/^capstring \d+\.\d+\.\d+\nGET \/api\/styles\n/);
   });
 });
 
@@ -58,13 +71,12 @@ describe('GET /api/styles', () => {
     expect(Object.keys(body.categories)).toEqual(Object.keys(CATEGORIES));
   });
 
-  it('honours format=txt on styles and the root', async () => {
-    const styles = await call('/api/styles?format=txt');
-    expect(styles.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-    expect((await styles.text()).split('\n')).toEqual([...STYLES]);
-    const root = await call('/api?format=txt');
-    expect(root.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-    expect(await root.text()).toMatch(/^capstring \d+\.\d+\.\d+\nGET \/api\/styles\n/);
+  it('supports every format', async () => {
+    expect((await text('/api/styles.txt')).split('\n')).toEqual([...STYLES]);
+    expect(await text('/api/styles.xml')).toContain('<styles>\n    <style>same</style>');
+    expect(await text('/api/styles.yaml')).toContain('styles:\n  - "same"');
+    expect(await text('/api/styles.csv')).toMatch(/^count,styles,categories\n"37","same\|none\|/);
+    expect(await text('/api/styles.html')).toContain('<th>count</th><td>37</td>');
   });
 
   it('rejects extra segments', async () => {
@@ -74,34 +86,110 @@ describe('GET /api/styles', () => {
   });
 });
 
-describe('GET /api/:style/:text', () => {
-  it('transforms text', async () => {
-    const { res, body } = await json('/api/title/hello%20world');
-    expect(res.status).toBe(200);
-    expect(body).toEqual({ input: 'hello world', style: 'title', output: 'Hello World' });
+describe('output formats', () => {
+  it('json is the default with no extension and no header', async () => {
+    const res = await call('/api/title/hello%20world');
+    expect(res.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(await res.json()).toEqual({ input: 'hello world', style: 'title', output: 'Hello World' });
   });
 
+  it('selects by extension', async () => {
+    expect(await text('/api/title/hello%20world.txt')).toBe('Hello World');
+    expect((await call('/api/title/hello%20world.txt')).headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    expect(await text('/api/title/hello%20world.html')).toContain('<p><strong><em>Hello World</em></strong></p>');
+    expect((await call('/api/title/hello.html')).headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(await text('/api/upper/hello.xml')).toBe('<?xml version="1.0" encoding="UTF-8"?>\n<result>\n  <input>hello</input>\n  <style>upper</style>\n  <output>HELLO</output>\n</result>');
+    expect((await call('/api/upper/hello.xml')).headers.get('Content-Type')).toBe('application/xml; charset=utf-8');
+    expect(await text('/api/upper/hello.yaml')).toBe('input: "hello"\nstyle: "upper"\noutput: "HELLO"');
+    expect(await text('/api/upper/hello.yml')).toBe('input: "hello"\nstyle: "upper"\noutput: "HELLO"');
+    expect((await call('/api/upper/hello.yaml')).headers.get('Content-Type')).toBe('text/yaml; charset=utf-8');
+    expect(await text('/api/upper/hello.csv')).toBe('input,style,output\n"hello","upper","HELLO"');
+    expect((await call('/api/upper/hello.csv')).headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
+    expect(await text('/api/upper/hello.JSON')).toBe('{"input":"hello","style":"upper","output":"HELLO"}');
+  });
+
+  it('selects by ?format=', async () => {
+    expect(await text('/api/upper/hello?format=txt')).toBe('HELLO');
+    expect(await text('/api/upper/hello?format=yml')).toContain('output: "HELLO"');
+  });
+
+  it('selects by Accept header, first recognised type wins', async () => {
+    const accept = (value) => call('/api/upper/hello', { headers: { Accept: value } });
+    expect(await (await accept('text/plain')).text()).toBe('HELLO');
+    expect((await accept('text/html, application/json')).headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect((await accept('application/xml;q=0.9')).headers.get('Content-Type')).toBe('application/xml; charset=utf-8');
+    expect((await accept('text/csv')).headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
+    expect((await accept('application/yaml')).headers.get('Content-Type')).toBe('text/yaml; charset=utf-8');
+    expect((await accept('*/*')).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect((await accept('image/png')).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+  });
+
+  it('extension beats ?format= beats Accept', async () => {
+    const res = await call('/api/upper/hello.txt?format=xml', { headers: { Accept: 'text/html' } });
+    expect(res.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
+    const res2 = await call('/api/upper/hello?format=xml', { headers: { Accept: 'text/html' } });
+    expect(res2.headers.get('Content-Type')).toBe('application/xml; charset=utf-8');
+  });
+
+  it('jsonp wraps the JSON in a guarded callback', async () => {
+    const res = await call('/api/upper/hello.jsonp?callback=cb');
+    expect(res.headers.get('Content-Type')).toBe('application/javascript; charset=utf-8');
+    expect(await res.text()).toBe('/**/ typeof cb === \'function\' && cb({"input":"hello","style":"upper","output":"HELLO"});');
+    expect(await text('/api/upper/hello.jsonp')).toContain('callback(');
+    expect(await text('/api/upper/hello', { headers: { Accept: 'application/javascript' } })).toContain('callback(');
+  });
+
+  it('rejects unsafe jsonp callbacks and never wraps errors', async () => {
+    const { res, body } = await json('/api/upper/hello.jsonp?callback=alert(1)');
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe('invalid_callback');
+    const err = await call('/api/nope/hello.jsonp');
+    expect(err.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+  });
+
+  it('rejects unknown formats but treats unknown extensions as text', async () => {
+    expect((await json('/api/title/hi?format=pdf')).body.error.code).toBe('invalid_format');
+    expect((await json('/api/upper/file.pdf')).body).toEqual({ input: 'file.pdf', style: 'upper', output: 'FILE.PDF' });
+    expect((await json('/api/upper/.txt')).body.output).toBe('.TXT'); // a bare extension is text, not a format
+  });
+
+  it('?text= keeps a trailing .txt as text', async () => {
+    expect((await json('/api/upper/x?text=notes.txt')).body.output).toBe('NOTES.TXT');
+  });
+
+  it('escapes HTML and XML in those formats only', async () => {
+    const xss = '%3Cscript%3Ealert(1)%3C%2Fscript%3E';
+    expect(await text(`/api/same/${xss}.html`)).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(await text(`/api/same/${xss}.html`)).not.toContain('<script>');
+    expect(await text(`/api/same/${xss}.xml`)).toContain('&lt;script&gt;');
+    expect(await text(`/api/same/${xss}.txt`)).toBe('<script>alert(1)</script>');
+    expect((await json(`/api/same/${xss}`)).body.output).toBe('<script>alert(1)</script>');
+    expect(await text('/api/same/a%22b%26c%27d.html')).toContain('a&quot;b&amp;c&#39;d');
+  });
+
+  it('csv and yaml escape their own delimiters', async () => {
+    expect(await text('/api/same/say%20%22hi%22%2C%20ok.csv')).toBe('input,style,output\n"say ""hi"", ok","same","say ""hi"", ok"');
+    expect(await text('/api/same/line%0Abreak.yaml')).toContain('output: "line\\nbreak"');
+  });
+
+  it('supports pretty JSON', async () => {
+    expect(await text('/api/upper/hi?pretty=1')).toContain('\n  "input"');
+  });
+
+  it('renders errors in the requested format', async () => {
+    expect(await text('/api/nope/hi.txt')).toBe('error: unknown_style - Unknown style "nope". See /api/styles.');
+    expect(await text('/api/nope/hi.xml')).toContain('<code>unknown_style</code>');
+    expect(await text('/api/nope/hi.html')).toContain('unknown_style');
+    expect((await call('/api/nope/hi.csv')).status).toBe(404);
+  });
+});
+
+describe('GET /api/:style/:text', () => {
   it('returns "" for the none style', async () => {
     const { res, body } = await json('/api/none/hello');
     expect(res.status).toBe(200);
     expect(body.output).toBe('');
-  });
-
-  it('supports format=txt', async () => {
-    const res = await call('/api/title/hello%20world?format=txt');
-    expect(res.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-    expect(await res.text()).toBe('Hello World');
-  });
-
-  it('supports pretty', async () => {
-    const res = await call('/api/upper/hi?pretty=1');
-    expect(await res.text()).toContain('\n  "input"');
-  });
-
-  it('rejects unknown format', async () => {
-    const { res, body } = await json('/api/title/hi?format=xml');
-    expect(res.status).toBe(400);
-    expect(body.error.code).toBe('invalid_format');
+    expect(await text('/api/none/hello.txt')).toBe('');
   });
 
   it('joins extra path segments with slashes and lets ?text override', async () => {
@@ -110,8 +198,7 @@ describe('GET /api/:style/:text', () => {
   });
 
   it('decodes unicode', async () => {
-    const { body } = await json('/api/slug/Cr%C3%A8me%20Br%C3%BBl%C3%A9e');
-    expect(body.output).toBe('creme-brulee');
+    expect((await json('/api/slug/Cr%C3%A8me%20Br%C3%BBl%C3%A9e')).body.output).toBe('creme-brulee');
   });
 
   it('marks random as uncacheable', async () => {
@@ -133,6 +220,9 @@ describe('GET /api/:style/:text', () => {
       expect(res.status).toBe(400);
       expect(body.error.code).toBe('missing_text');
     }
+    const asText = await call('/api/title.txt');
+    expect(asText.status).toBe(400);
+    expect(await asText.text()).toContain('missing_text');
   });
 
   it('413s long text', async () => {
@@ -167,19 +257,20 @@ describe('GET /api/all/:text', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
-  it('format=txt escapes line breaks inside results', async () => {
-    const text = await (await call('/api/all/a%0Ab?format=txt')).text();
-    const lines = text.split('\n');
+  it('txt gives one tab-separated line per style with line breaks escaped', async () => {
+    const lines = (await text('/api/all/a%0Ab.txt')).split('\n');
     expect(lines).toHaveLength(STYLES.length);
     expect(lines[0]).toBe('same\ta\\nb');
-    expect((await (await call('/api/all/a%E2%80%A8b?format=txt')).text()).split('\n')[0]).toBe('same\ta\\u2028b');
+    expect((await text('/api/all/a%E2%80%A8b.txt')).split('\n')[0]).toBe('same\ta\\u2028b');
   });
 
-  it('format=txt gives one tab-separated line per style', async () => {
-    const text = await (await call('/api/all/hi?format=txt')).text();
-    const lines = text.split('\n');
-    expect(lines).toHaveLength(STYLES.length);
-    expect(lines[0]).toBe('same\thi');
+  it('csv gives one row per style; xml and yaml nest the results', async () => {
+    const csv = (await text('/api/all/hi.csv')).split('\n');
+    expect(csv[0]).toBe('style,output');
+    expect(csv).toHaveLength(STYLES.length + 1);
+    expect(csv[1]).toBe('"same","hi"');
+    expect(await text('/api/all/hi.xml')).toContain('<results>\n    <same>hi</same>');
+    expect(await text('/api/all/hi.yaml')).toContain('results:\n  same: "hi"');
   });
 
   it('400s missing text', async () => {
@@ -190,9 +281,10 @@ describe('GET /api/all/:text', () => {
 describe('GET /api/chain/:styles/:text', () => {
   it('applies styles in order with + or ,', async () => {
     const { body } = await json('/api/chain/upper+reverse/hello');
-    expect(body).toEqual({ input: 'hello', styles: ['upper', 'reverse'], output: 'OLLEH' });
+    expect(body).toEqual({ input: 'hello', style: 'upper+reverse', styles: ['upper', 'reverse'], output: 'OLLEH' });
     expect((await json('/api/chain/lower,title,kebab/HELLO%20WORLD')).body.output).toBe('hello-world');
-    expect(await (await call('/api/chain/upper/hi?format=txt')).text()).toBe('HI');
+    expect(await text('/api/chain/upper/hi.txt')).toBe('HI');
+    expect(await text('/api/chain/upper+reverse/hello.xml')).toContain('<styles>\n    <style>upper</style>\n    <style>reverse</style>\n  </styles>');
   });
 
   it('bounds intermediate output so expanding chains cannot exhaust memory', async () => {
@@ -232,19 +324,25 @@ describe('POST /api/batch', () => {
     });
   });
 
-  it('honours format=txt with one output line per text (errors become empty lines)', async () => {
-    const res = await post('/api/batch?format=txt', { style: 'upper', texts: ['a', 7, 'b'] });
+  it('accepts "inputs" as an alias for "texts"', async () => {
+    const res = await post('/api/batch', { style: 'upper', inputs: ['a'] });
+    expect((await res.json()).results).toEqual([{ input: 'a', output: 'A' }]);
+  });
+
+  it('honours txt and csv', async () => {
+    const res = await post('/api/batch.txt', { style: 'upper', texts: ['a', 7, 'b'] });
     expect(res.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
     expect(await res.text()).toBe('A\n\nB');
-    const multi = await post('/api/batch?format=txt', { style: 'same', texts: ['a\nb', 'c'] });
-    expect(await multi.text()).toBe('a\\nb\nc');
+    expect(await (await post('/api/batch?format=txt', { style: 'same', texts: ['a\nb', 'c'] })).text()).toBe('a\\nb\nc');
+    expect(await (await post('/api/batch.csv', { style: 'upper', texts: ['a', 7] })).text())
+      .toBe('input,output,error\n"a","A",""\n"7","","not_a_string"');
   });
 
   it('reports per-item problems inline', async () => {
     const res = await post('/api/batch', { style: 'upper', texts: ['ok', 42, 'a'.repeat(2001)] });
     const body = await res.json();
     expect(body.results[1]).toEqual({ input: 42, output: null, error: 'not_a_string' });
-    expect(body.results[2].error).toBe('text_too_long');
+    expect(body.results[2]).toEqual({ input: `${'a'.repeat(50)}...`, output: null, error: 'text_too_long' });
   });
 
   it('validates body', async () => {
@@ -261,11 +359,8 @@ describe('POST /api/batch', () => {
     const bad = await post('/api/batch', '{not json');
     expect(bad.status).toBe(400);
     expect((await bad.json()).error.code).toBe('invalid_json');
-
-    const wrongType = await post('/api/batch', '{}', { 'Content-Type': 'text/plain' });
-    expect(wrongType.status).toBe(415);
-    const noType = await post('/api/batch', '{}', {});
-    expect(noType.status).toBe(415);
+    expect((await post('/api/batch', '{}', { 'Content-Type': 'text/plain' })).status).toBe(415);
+    expect((await post('/api/batch', '{}', {})).status).toBe(415);
   });
 
   it('405s GET with Allow', async () => {
@@ -279,60 +374,44 @@ describe('POST /api/batch', () => {
   });
 });
 
-describe('GET /api/badge/:style/:text', () => {
-  it('returns an SVG badge', async () => {
-    const res = await call('/api/badge/sponge/hello%20world');
+describe('GET /api/count/:text', () => {
+  it('counts words and characters (code points, not UTF-16 units)', async () => {
+    const { res, body } = await json('/api/count/hello%20big%20world');
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
-    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
-    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
-    const svg = await res.text();
-    expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
-    expect(svg).toContain('>sponge<');
-    expect(svg).toContain('>HeLlO WoRlD<');
+    expect(body).toEqual({ input: 'hello big world', words: 3, characters: 15, charactersNoSpaces: 13 });
+    expect((await json('/api/count/%F0%9F%98%80%20a')).body).toEqual({ input: '😀 a', words: 2, characters: 3, charactersNoSpaces: 2 });
+    expect((await json('/api/count/%20%20spaced%20%20')).body.words).toBe(1);
   });
 
-  it('supports ?label= and escapes XML', async () => {
-    const svg = await (await call('/api/badge/same/a%3Cb%26c?label=x%22y')).text();
-    expect(svg).toContain('>x&quot;y<');
-    expect(svg).toContain('>a&lt;b&amp;c<');
-    expect(svg).not.toContain('<b&');
+  it('supports txt, html, csv', async () => {
+    expect(await text('/api/count/hello%20world.txt')).toBe('words: 2, chars: 11, chars (no spaces): 10');
+    expect(await text('/api/count/hi.html')).toContain('<th>words</th><td>1</td>');
+    expect(await text('/api/count/hi.csv')).toBe('input,words,characters,charactersNoSpaces\n"hi","1","2","2"');
   });
 
-  it('handles empty output and random', async () => {
-    expect((await call('/api/badge/none/hi')).status).toBe(200);
-    expect((await call('/api/badge/random/hi')).headers.get('Cache-Control')).toBe('no-store');
-  });
-
-  it('limits label length', async () => {
-    expect((await call(`/api/badge/upper/hi?label=${'x'.repeat(100)}`)).status).toBe(200);
-    const { res, body } = await json(`/api/badge/upper/hi?label=${'x'.repeat(101)}`);
-    expect(res.status).toBe(400);
-    expect(body.error.code).toBe('label_too_long');
-  });
-
-  it('validates style and text', async () => {
-    expect((await json('/api/badge/nope/hi')).body.error.code).toBe('unknown_style');
-    expect((await json('/api/badge')).body.error.code).toBe('unknown_style');
-    expect((await json('/api/badge/upper')).body.error.code).toBe('missing_text');
+  it('validates text', async () => {
+    expect((await json('/api/count')).body.error.code).toBe('missing_text');
+    expect((await call(`/api/count/${'a'.repeat(2001)}`)).status).toBe(413);
   });
 });
 
 describe('GET /api/lorem/:count', () => {
-  it('defaults to 50 words', async () => {
+  it('defaults to 50 words, capitalized, ending in a period', async () => {
     const { res, body } = await json('/api/lorem');
     expect(res.status).toBe(200);
     expect(body.count).toBe(50);
     expect(body.style).toBeNull();
     expect(body.output.split(' ')).toHaveLength(50);
-    expect(body.output.startsWith('lorem ipsum dolor')).toBe(true);
+    expect(body.output.startsWith('Lorem ipsum dolor')).toBe(true);
+    expect(body.output.endsWith('.')).toBe(true);
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
   });
 
-  it('honours count, ?style= and format=txt', async () => {
-    const { body } = await json('/api/lorem/3?style=title');
-    expect(body).toEqual({ count: 3, style: 'title', output: 'Lorem Ipsum Dolor' });
-    expect(await (await call('/api/lorem/2?format=txt')).text()).toBe('lorem ipsum');
+  it('honours count, ?style=, and formats', async () => {
+    expect((await json('/api/lorem/3?style=kebab')).body).toEqual({ count: 3, style: 'kebab', output: 'lorem-ipsum-dolor' });
+    expect((await json('/api/lorem/1')).body.output).toBe('Lorem.');
+    expect(await text('/api/lorem/2.txt')).toBe('Lorem ipsum.');
+    expect(await text('/api/lorem/2.html')).toContain('<em>Lorem ipsum.</em>');
     expect((await json('/api/lorem/1000')).body.output.split(' ')).toHaveLength(1000);
     expect((await call('/api/lorem/2?style=random')).headers.get('Cache-Control')).toBe('no-store');
   });
@@ -376,9 +455,14 @@ describe('GET /api/spell/:text', () => {
     expect(body.corrections).toEqual([]);
   });
 
-  it('applies ?style= after correcting and supports txt', async () => {
+  it('applies ?style= after correcting and supports every format', async () => {
     expect((await json('/api/spell/helo%20speling?style=title')).body.output).toBe('Hello Spelling');
-    expect(await (await call('/api/spell/helo?format=txt')).text()).toBe('hello');
+    expect(await text('/api/spell/helo.txt')).toBe('hello');
+    expect(await text('/api/spell/helo.html')).toContain('<em>hello</em>');
+    expect(await text('/api/spell/helo.xml')).toContain('<corrections>\n    <correction>\n      <from>helo</from>\n      <to>hello</to>');
+    expect(await text('/api/spell/helo.yaml')).toContain('corrections:\n  -\n    from: "helo"\n    to: "hello"');
+    expect(await text('/api/spell/hello.yaml')).toContain('corrections: []');
+    expect(await text('/api/spell/helo.csv')).toBe('input,style,output,corrections,limited\n"helo","","hello","{""from"":""helo"",""to"":""hello""}","false"');
     expect((await call('/api/spell/helo?style=random')).headers.get('Cache-Control')).toBe('no-store');
   });
 
@@ -386,7 +470,7 @@ describe('GET /api/spell/:text', () => {
     const words = Array(55).fill('xqzjvwpk').concat(['helo']);
     const { body } = await json(`/api/spell/${encodeURIComponent(words.join(' '))}`);
     expect(body.limited).toBe(true);
-    expect(body.corrections).toEqual([]); // 'helo' came after the budget ran out
+    expect(body.corrections).toEqual([]);
     expect(body.output.endsWith(' helo')).toBe(true);
   });
 
@@ -407,15 +491,59 @@ describe('GET /api/spell/:text', () => {
   });
 });
 
+describe('GET /api/badge/:style/:text', () => {
+  it('returns an SVG badge', async () => {
+    const res = await call('/api/badge/sponge/hello%20world');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    const svg = await res.text();
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
+    expect(svg).toContain('>sponge<');
+    expect(svg).toContain('>HeLlO WoRlD<');
+  });
+
+  it('supports ?label= and escapes XML', async () => {
+    const svg = await text('/api/badge/same/a%3Cb%26c?label=x%22y');
+    expect(svg).toContain('>x&quot;y<');
+    expect(svg).toContain('>a&lt;b&amp;c<');
+    expect(svg).not.toContain('<b&');
+  });
+
+  it('handles empty output and random', async () => {
+    expect((await call('/api/badge/none/hi')).status).toBe(200);
+    expect((await call('/api/badge/random/hi')).headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('limits label length', async () => {
+    expect((await call(`/api/badge/upper/hi?label=${'x'.repeat(100)}`)).status).toBe(200);
+    const { res, body } = await json(`/api/badge/upper/hi?label=${'x'.repeat(101)}`);
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe('label_too_long');
+  });
+
+  it('validates style and text', async () => {
+    expect((await json('/api/badge/nope/hi')).body.error.code).toBe('unknown_style');
+    expect((await json('/api/badge')).body.error.code).toBe('unknown_style');
+    expect((await json('/api/badge/upper')).body.error.code).toBe('missing_text');
+  });
+});
+
 describe('misc', () => {
   it('answers OPTIONS preflight with 204 and CORS', async () => {
     const res = await call('/api/anything', { method: 'OPTIONS' });
     expect(res.status).toBe(204);
     expect(res.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, OPTIONS');
+    expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Accept');
   });
 
   it('405s POST /api and POST /api/styles', async () => {
     expect((await post('/api', {})).status).toBe(405);
     expect((await post('/api/styles', {})).status).toBe(405);
+  });
+
+  it('bad encoding in a path with an extension still reports bad_encoding', async () => {
+    expect((await json('/api/upper/%E0%A4%A.txt')).body.error.code).toBe('bad_encoding');
   });
 });

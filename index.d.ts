@@ -1,5 +1,5 @@
 /**
- * capstring - CaPiTaLiZe StRiNgS in 37 ways!
+ * capstring - CaPiTaLiZe StRiNgS!
  */
 
 /** Every supported style name. */

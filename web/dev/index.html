@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script src="/theme-init.js"></script>
+  <title>capstring developer docs</title>
+  <meta name="description" content="Install and use capstring in Node, the browser, TypeScript, and the command line. Every style with examples, options, recipes, and the HTTP API from code.">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/themes/vue.css">
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    :root {
+      --theme-color: #2563eb;
+      --theme-hue: 220;
+    }
+    body { background: var(--bg); color: var(--fg); margin: 0; }
+    /* Docsify owns the area between the shared header and footer */
+    .sidebar { top: 68px; background: var(--bg); border-right: 1px solid var(--border); }
+    .sidebar > h1 { display: none; }
+    .sidebar ul li a { color: var(--muted); }
+    .sidebar ul li.active > a { color: var(--accent); border-right-color: var(--accent); }
+    .sidebar-toggle { background: var(--bg); }
+    .sidebar-toggle span { background: var(--accent); }
+    .content { top: 68px; padding-top: 0; }
+    .markdown-section { max-width: 820px; padding: 24px 40px 60px; }
+    .markdown-section h1, .markdown-section h2, .markdown-section h3 { color: var(--fg); }
+    .markdown-section h2 { border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .markdown-section p, .markdown-section li, .markdown-section td, .markdown-section th { color: var(--fg); }
+    .markdown-section a { color: var(--accent); }
+    .markdown-section code { background: var(--card); color: var(--fg); border-radius: 4px; }
+    .markdown-section pre { background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+    .markdown-section pre > code { background: transparent; color: var(--fg); font-family: var(--mono); }
+    .markdown-section tr { border-top-color: var(--border); }
+    .markdown-section tr:nth-child(2n) { background: var(--card); }
+    .markdown-section blockquote { border-left-color: var(--accent); background: var(--card); padding: 10px 16px; border-radius: 0 8px 8px 0; }
+    .markdown-section blockquote p { color: var(--muted); }
+    .search { border-bottom-color: var(--border); }
+    .search input { background: var(--bg); color: var(--fg); }
+    .search .results-panel { background: var(--bg); }
+    .search h2 { color: var(--fg); }
+    .search .matching-post { border-bottom-color: var(--border); }
+    .docsify-copy-code-button { background: var(--accent) !important; }
+    /* Prism token colours that read well on both themes */
+    .token.comment { color: #8a8f98; }
+    .token.string, .token.attr-value { color: #16a34a; }
+    .token.keyword, .token.function { color: #2563eb; }
+    .token.number, .token.boolean { color: #d97706; }
+    .token.punctuation, .token.operator { color: var(--muted); }
+    :root[data-theme="dark"] .token.string, :root[data-theme="dark"] .token.attr-value { color: #4ade80; }
+    :root[data-theme="dark"] .token.keyword, :root[data-theme="dark"] .token.function { color: #7ab0ff; }
+    :root[data-theme="dark"] .token.number, :root[data-theme="dark"] .token.boolean { color: #fbbf24; }
+    [data-site-footer] { position: relative; z-index: 1; margin-left: 300px; padding-left: 40px; }
+    @media (max-width: 768px) { [data-site-footer] { margin-left: 0; padding-left: 0; } }
+  </style>
+</head>
+<body>
+  <div class="site-shell"><header data-site-header></header></div>
+  <div id="app">Loading developer docs…</div>
+  <div class="site-shell"><footer data-site-footer></footer></div>
+  <script>
+    window.$docsify = {
+      name: 'capstring',
+      loadSidebar: true,
+      subMaxLevel: 2,
+      auto2top: true,
+      relativePath: false,
+      basePath: '/dev/',
+      search: { placeholder: 'Search docs', noData: 'No results', depth: 3 },
+      copyCode: { buttonText: 'Copy', successText: 'Copied' },
+      notFoundPage: true
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/docsify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4.13.1/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@3.0.0/dist/docsify-copy-code.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="/site.js"></script>
+</body>
+</html>

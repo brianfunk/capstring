@@ -33,3 +33,4 @@ jspm_packages
 # Netlify
 .netlify
 web/capstring.js
+web/dev/changelog.md

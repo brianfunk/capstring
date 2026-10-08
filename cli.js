@@ -19,7 +19,7 @@ import capstring, { capstringAll, STYLES, isValidStyle } from './index.js';
 
 const { version: VERSION } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
-const USAGE = `capstring ${VERSION} - CaPiTaLiZe StRiNgS in ${STYLES.length} ways!
+const USAGE = `capstring ${VERSION} - CaPiTaLiZe StRiNgS!
 
 Usage:
   capstring <style> [text...]     Transform text (reads stdin when no text is given)

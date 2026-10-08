@@ -7,7 +7,7 @@
 */
 
 /**
- * capstring - CaPiTaLiZe StRiNgS in 37 ways!
+ * capstring - CaPiTaLiZe StRiNgS!
  *
  * Zero dependencies, browser-safe (no Node-only imports), Unicode and emoji aware.
  * @module capstring

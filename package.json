@@ -1,7 +1,7 @@
 {
   "name": "capstring",
   "version": "1.1.0",
-  "description": "CaPiTaLiZe StRiNgS in 37 ways! Case conversion, code conventions, and fun text styles. Zero deps, Unicode safe.",
+  "description": "CaPiTaLiZe StRiNgS! Case conversion, code conventions, encodings, and fun text styles. Zero deps, Unicode safe.",
   "type": "module",
   "main": "index.js",
   "types": "./index.d.ts",
@@ -30,7 +30,7 @@
     "lint": "eslint . --format stylish",
     "lint:report": "eslint . --format html -o coverage/lint-report.html",
     "prepublishOnly": "npm run lint && npm run test:coverage",
-    "web:prep": "cp index.js web/capstring.js",
+    "web:prep": "cp index.js web/capstring.js && cp CHANGELOG.md web/dev/changelog.md",
     "dev": "npm run web:prep && npx --yes netlify-cli dev"
   },
   "repository": {

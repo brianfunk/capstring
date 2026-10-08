@@ -11,15 +11,19 @@
  *
  *   GET  /api                        service info
  *   GET  /api/styles                 style names and categories
- *   GET  /api/all/:text              every style
- *   GET  /api/chain/:styles/:text    apply styles in sequence (`upper+reverse` or `upper,reverse`)
- *   GET  /api/badge/:style/:text     shields-style SVG badge
- *   GET  /api/lorem/:count           lorem ipsum words, optionally `?style=`
- *   GET  /api/spell/:text            spell-corrected text, optionally `?style=`
  *   GET  /api/:style/:text           one style
- *   POST /api/batch                  { style, texts[] }
+ *   GET  /api/all/:text              every style
+ *   GET  /api/chain/:styles/:text    styles applied in order (`upper+reverse` or `upper,reverse`)
+ *   POST /api/batch                  { style, texts[] }  (`inputs` accepted as an alias)
+ *   GET  /api/count/:text            words and characters
+ *   GET  /api/lorem/:count           lorem ipsum words, optional ?style=
+ *   GET  /api/spell/:text            spell-corrected text, optional ?style=
+ *   GET  /api/badge/:style/:text     shields-style SVG badge
  *
- * Query: `?text=` overrides the path text (lets text contain `/`), `?format=txt`, `?pretty=1`.
+ * Output format, in priority order: a file extension on the last path segment
+ * (`/api/title/hello.txt`), `?format=`, the `Accept` header, then JSON.
+ * Formats: json (default), jsonp (`?callback=`), txt, html, xml, yaml/yml, csv.
+ * `?text=` overrides the path text (lets text contain `/` or end in `.txt`). `?pretty=1` indents JSON.
  * @module capstring/api
  */
 
@@ -40,35 +44,59 @@ const MAX_SPELL_TEXT = 500;
 const MAX_SPELL_SUGGESTIONS = 50;
 
 /** First path segments owned by named endpoints; a style with one of these names would be unreachable */
-export const RESERVED = Object.freeze(['styles', 'all', 'chain', 'badge', 'lorem', 'spell', 'batch']);
+export const RESERVED = Object.freeze(['styles', 'all', 'chain', 'batch', 'count', 'lorem', 'spell', 'badge']);
+
+/** Supported output formats (`yml` is accepted as an alias of `yaml`) */
+export const FORMATS = Object.freeze(['json', 'jsonp', 'txt', 'html', 'xml', 'yaml', 'csv']);
+
 const ENDPOINTS = [
   'GET /api/styles',
+  'GET /api/:style/:text',
   'GET /api/all/:text',
   'GET /api/chain/:styles/:text',
-  'GET /api/badge/:style/:text',
+  'POST /api/batch',
+  'GET /api/count/:text',
   'GET /api/lorem/:count?style=',
   'GET /api/spell/:text?style= (max 500 chars)',
-  'GET /api/:style/:text',
-  'POST /api/batch'
+  'GET /api/badge/:style/:text'
 ];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
   'Access-Control-Max-Age': '86400'
+};
+
+const CONTENT_TYPES = {
+  json: 'application/json; charset=utf-8',
+  jsonp: 'application/javascript; charset=utf-8',
+  txt: 'text/plain; charset=utf-8',
+  html: 'text/html; charset=utf-8',
+  xml: 'application/xml; charset=utf-8',
+  yaml: 'text/yaml; charset=utf-8',
+  csv: 'text/csv; charset=utf-8'
+};
+
+/** Accept header media types mapped to formats, checked in the order the client lists them */
+const ACCEPT_TYPES = {
+  'application/json': 'json',
+  'application/javascript': 'jsonp',
+  'text/javascript': 'jsonp',
+  'text/plain': 'txt',
+  'text/html': 'html',
+  'application/xml': 'xml',
+  'text/xml': 'xml',
+  'text/yaml': 'yaml',
+  'application/yaml': 'yaml',
+  'application/x-yaml': 'yaml',
+  'text/csv': 'csv'
 };
 
 /** Lorem Ipsum base text */
 const LOREM_WORDS = 'lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum'.split(' ');
 
-/**
- * Escape CR/LF so a value fits on one line of a newline-delimited text response
- * @param {string} value - Raw value
- * @returns {string} Single-line value
- */
-const oneLine = (value) => value
-  .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+// ========== Errors ==========
 
 /** Thrown by handlers to produce a structured error response */
 class ApiError extends Error {
@@ -86,25 +114,119 @@ class ApiError extends Error {
   }
 }
 
+// ========== Escaping and serializers ==========
+
 /**
- * Build a JSON or text response with CORS and caching headers
- * @param {unknown} body - JSON-serializable body, or a string when `format` is `txt`
- * @param {{ status?: number, format?: string, pretty?: boolean, cache?: boolean, headers?: Record<string,string> }} [opts] - Options
- * @returns {Response} Response
+ * Escape text for HTML and XML
+ * @param {unknown} str - Raw text
+ * @returns {string} Escaped text
  */
-const respond = (body, { status = 200, format = 'json', pretty = false, cache = true, headers = {} } = {}) => {
-  const isText = format === 'txt';
-  return new Response(isText ? String(body) : JSON.stringify(body, null, pretty ? 2 : 0), {
-    status,
-    headers: {
-      ...CORS,
-      'Content-Type': isText ? 'text/plain; charset=utf-8' : 'application/json; charset=utf-8',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': cache ? 'public, max-age=86400' : 'no-store',
-      ...headers
-    }
-  });
+const escapeXml = (str) => String(str).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+/**
+ * Escape CR/LF and Unicode line separators so a value fits on one line
+ * @param {unknown} value - Raw value
+ * @returns {string} Single-line value
+ */
+const oneLine = (value) => String(value)
+  .replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
+/**
+ * Singular element name for array items (`styles` -> `style`, `results` -> `result`)
+ * @param {string} key - Plural key
+ * @returns {string} Singular key
+ */
+const singular = (key) => (key.endsWith('s') && key.length > 1 ? key.slice(0, -1) : 'item');
+
+/**
+ * Serialize a JSON value as XML elements
+ * @param {unknown} value - Value
+ * @param {string} tag - Element name
+ * @param {string} [indent] - Current indentation
+ * @returns {string} XML
+ */
+const toXml = (value, tag, indent = '') => {
+  if (Array.isArray(value)) {
+    const inner = value.map((v) => toXml(v, singular(tag), `${indent}  `)).join('\n');
+    return `${indent}<${tag}>\n${inner}\n${indent}</${tag}>`;
+  }
+  if (value !== null && typeof value === 'object') {
+    const inner = Object.entries(value).map(([k, v]) => toXml(v, k, `${indent}  `)).join('\n');
+    return `${indent}<${tag}>\n${inner}\n${indent}</${tag}>`;
+  }
+  return `${indent}<${tag}>${value === null ? '' : escapeXml(value)}</${tag}>`;
 };
+
+/**
+ * Serialize a JSON value as YAML (strings double-quoted, so any text round-trips)
+ * @param {unknown} value - Value
+ * @param {string} [indent] - Current indentation
+ * @returns {string} YAML
+ */
+const toYaml = (value, indent = '') => {
+  const isObj = (v) => v !== null && typeof v === 'object';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return `${indent}[]`;
+    return value.map((v) => (isObj(v) ? `${indent}-\n${toYaml(v, `${indent}  `)}` : `${indent}- ${toYaml(v)}`)).join('\n');
+  }
+  if (isObj(value)) {
+    return Object.entries(value).map(([k, v]) => (isObj(v) && (Array.isArray(v) ? v.length : Object.keys(v).length)
+      ? `${indent}${k}:\n${toYaml(v, `${indent}  `)}`
+      : `${indent}${k}: ${toYaml(v)}`)).join('\n');
+  }
+  return typeof value === 'string' ? JSON.stringify(value) : String(value);
+};
+
+/**
+ * Quote a CSV cell (arrays joined with `|`, objects as JSON)
+ * @param {unknown} value - Cell value
+ * @returns {string} Quoted cell
+ */
+const csvCell = (value) => {
+  const text = value === null || value === undefined ? ''
+    : Array.isArray(value) ? value.map((v) => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))).join('|')
+      : typeof value === 'object' ? JSON.stringify(value)
+        : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+/**
+ * Serialize a record or a list of records as CSV
+ * @param {Record<string, unknown>|Record<string, unknown>[]} value - Rows
+ * @returns {string} CSV
+ */
+const toCsv = (value) => {
+  const rows = Array.isArray(value) ? value : [value];
+  const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  return [columns.join(','), ...rows.map((r) => columns.map((c) => csvCell(r[c])).join(','))].join('\n');
+};
+
+/**
+ * Render a value for an HTML table cell
+ * @param {unknown} v - Value
+ * @returns {string} Escaped cell content
+ */
+const htmlCell = (v) => {
+  if (v === null || v === undefined) return '';
+  if (Array.isArray(v)) return v.map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : String(x))).map(escapeXml).join(', ');
+  if (typeof v === 'object') return escapeXml(JSON.stringify(v));
+  return escapeXml(v);
+};
+
+/**
+ * Render a record as a small HTML document (list payloads only exist for csv)
+ * @param {string} title - Page title
+ * @param {Record<string, unknown>} value - Body data
+ * @param {string} [headline] - Primary value shown large (e.g. the transformed text)
+ * @returns {string} HTML
+ */
+const toHtml = (title, value, headline) => {
+  const body = `<table>${Object.entries(value).map(([k, v]) => `<tr><th>${escapeXml(k)}</th><td>${htmlCell(v)}</td></tr>`).join('')}</table>`;
+  const lead = headline === undefined ? '' : `<p><strong><em>${escapeXml(headline)}</em></strong></p>\n`;
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${escapeXml(title)}</title></head>\n<body>\n${lead}${body}\n</body></html>`;
+};
+
+// ========== Request helpers ==========
 
 /**
  * Decode a path segment, mapping URIError to a 400
@@ -120,15 +242,57 @@ const decode = (segment) => {
 };
 
 /**
+ * Split the path into decoded segments and pull a known format extension off the last one
+ * @param {string} pathname - URL path
+ * @returns {{ segments: string[], ext: string|null }} Segments and extension
+ */
+const parsePath = (pathname) => {
+  const segments = pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean).map(decode);
+  let ext = null;
+  if (segments.length) {
+    const match = /^(.+)\.(json|jsonp|txt|html|xml|yaml|yml|csv)$/is.exec(segments[segments.length - 1]);
+    if (match) {
+      segments[segments.length - 1] = match[1];
+      ext = match[2].toLowerCase();
+    }
+  }
+  return { segments, ext };
+};
+
+/**
+ * Resolve the output format: extension, then ?format=, then Accept header, then json
+ * @param {string|null} ext - Extension from the path
+ * @param {URLSearchParams} query - Query params
+ * @param {Headers} headers - Request headers
+ * @returns {string} Format name
+ */
+const resolveFormat = (ext, query, headers) => {
+  const requested = ext ?? query.get('format');
+  if (requested !== null) {
+    const normalized = requested.toLowerCase() === 'yml' ? 'yaml' : requested.toLowerCase();
+    if (!FORMATS.includes(normalized)) {
+      throw new ApiError(400, 'invalid_format', `Unknown format "${requested}". Use one of: ${FORMATS.join(', ')}.`);
+    }
+    return normalized;
+  }
+  for (const part of (headers.get('accept') ?? '').split(',')) {
+    const type = part.split(';')[0].trim().toLowerCase();
+    if (ACCEPT_TYPES[type]) return ACCEPT_TYPES[type];
+  }
+  return 'json';
+};
+
+/**
  * Resolve and validate the input text from path segments or the `text` query param
  * @param {string[]} segments - Remaining decoded path segments
  * @param {URLSearchParams} query - Query params
+ * @param {number} [max] - Length limit
  * @returns {string} Text
  */
-const getText = (segments, query) => {
+const getText = (segments, query, max = MAX_TEXT) => {
   const text = query.has('text') ? query.get('text') : segments.join('/');
   if (!text) throw new ApiError(400, 'missing_text', 'Provide text in the path (/api/<style>/<text>) or as ?text=.');
-  if (text.length > MAX_TEXT) throw new ApiError(413, 'text_too_long', `Text must be at most ${MAX_TEXT} characters.`);
+  if (text.length > max) throw new ApiError(413, 'text_too_long', `Text must be at most ${max} characters.`);
   return text;
 };
 
@@ -152,19 +316,6 @@ const getStyle = (style) => {
 const optionalStyle = (query) => (query.has('style') ? getStyle(query.get('style')) : null);
 
 /**
- * Validate the output format
- * @param {URLSearchParams} query - Query params
- * @returns {'json'|'txt'} Format
- */
-const getFormat = (query) => {
-  const format = query.get('format') ?? 'json';
-  if (format !== 'json' && format !== 'txt') {
-    throw new ApiError(400, 'invalid_format', 'format must be "json" or "txt".');
-  }
-  return format;
-};
-
-/**
  * Enforce an HTTP method, answering 405 otherwise
  * @param {Request} req - Request
  * @param {string} allowed - Allowed method
@@ -183,14 +334,61 @@ const noExtraSegments = (rest) => {
   if (rest.length) throw new ApiError(404, 'not_found', 'No such endpoint.');
 };
 
-// ========== Badge ==========
+// ========== Response ==========
 
 /**
- * Escape text for safe inclusion in SVG/XML
- * @param {string} str - Raw text
- * @returns {string} Escaped text
+ * @typedef {Object} Payload
+ * @property {Record<string, unknown>|Record<string, unknown>[]} data - Body for json/jsonp/xml/yaml/csv/html
+ * @property {string} text - Plain-text rendering
+ * @property {string} title - HTML page title
+ * @property {string} [headline] - Primary value for the HTML rendering
  */
-const escapeXml = (str) => str.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+/**
+ * Build the response in the requested format with CORS and caching headers
+ * @param {Payload} payload - Endpoint result
+ * @param {{ format: string, query: URLSearchParams, status?: number, cache?: boolean, headers?: Record<string,string> }} ctx - Response context
+ * @returns {Response} Response
+ */
+const respond = (payload, { format, query, status = 200, cache = true, headers = {} }) => {
+  const json = JSON.stringify(payload.data, null, query.has('pretty') ? 2 : 0);
+  let body;
+  switch (format) {
+    case 'jsonp': {
+      const callback = query.get('callback') || 'callback';
+      if (!/^[\w$.]{1,64}$/.test(callback)) throw new ApiError(400, 'invalid_callback', 'callback must be a plain JavaScript identifier.');
+      body = `/**/ typeof ${callback} === 'function' && ${callback}(${json});`;
+      break;
+    }
+    case 'txt': body = payload.text; break;
+    case 'html': body = toHtml(payload.title, payload.data, payload.headline); break;
+    case 'xml': body = `<?xml version="1.0" encoding="UTF-8"?>\n${toXml(payload.data, 'result')}`; break;
+    case 'yaml': body = toYaml(payload.data); break;
+    case 'csv': body = toCsv(payload.data); break;
+    default: body = json;
+  }
+  return new Response(body, {
+    status,
+    headers: {
+      ...CORS,
+      'Content-Type': CONTENT_TYPES[format],
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': cache ? 'public, max-age=86400' : 'no-store',
+      'Vary': 'Accept',
+      ...headers
+    }
+  });
+};
+
+/**
+ * Payload for a result whose primary value is `data.output`
+ * @param {Record<string, unknown>} data - JSON record containing `output`
+ * @param {string} title - HTML title
+ * @returns {Payload} Payload
+ */
+const outputPayload = (data, title) => ({ data, text: String(data.output), title, headline: String(data.output) });
+
+// ========== Badge ==========
 
 /**
  * Render a shields.io-style flat SVG badge (no network call)
@@ -285,37 +483,36 @@ const spellCheck = async (text) => {
 /**
  * Route a request
  * @param {Request} req - Request
+ * @param {string} format - Resolved output format
+ * @param {URLSearchParams} query - Query params
+ * @param {string[]} segments - Decoded path segments (extension already removed)
  * @returns {Promise<Response>} Response
  */
-const route = async (req) => {
-  const url = new URL(req.url);
-  const query = url.searchParams;
-  const segments = url.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean).map(decode);
+const route = async (req, format, query, segments) => {
   const [head, ...rest] = segments;
-  const format = getFormat(query);
-  const pretty = query.has('pretty');
-  const out = (body, opts = {}) => respond(body, { format, pretty, ...opts });
+  const send = (payload, opts = {}) => respond(payload, { format, query, ...opts });
 
   if (head === undefined) {
     requireMethod(req, 'GET');
-    const info = { name: pkg.name, version: pkg.version, docs: `${SITE}/#api`, endpoints: ENDPOINTS };
-    return out(format === 'txt' ? `${info.name} ${info.version}\n${ENDPOINTS.join('\n')}` : info);
+    const data = { name: pkg.name, version: pkg.version, docs: `${SITE}/#api`, formats: FORMATS, endpoints: ENDPOINTS };
+    return send({ data, text: `${pkg.name} ${pkg.version}\n${ENDPOINTS.join('\n')}`, title: 'capstring API' });
   }
 
   if (head === 'styles') {
     requireMethod(req, 'GET');
     noExtraSegments(rest);
-    return out(format === 'txt' ? STYLES.join('\n') : { count: STYLES.length, styles: STYLES, categories: CATEGORIES });
+    const data = { count: STYLES.length, styles: STYLES, categories: CATEGORIES };
+    return send({ data, text: STYLES.join('\n'), title: 'capstring styles' });
   }
 
   if (head === 'all') {
     requireMethod(req, 'GET');
     const text = getText(rest, query);
     const results = capstringAll(text);
-    const body = format === 'txt'
-      ? STYLES.map((s) => `${s}\t${oneLine(results[s])}`).join('\n')
+    const data = format === 'csv'
+      ? STYLES.map((style) => ({ style, output: results[style] }))
       : { input: text, count: STYLES.length, results };
-    return out(body, { cache: false });
+    return send({ data, text: STYLES.map((s) => `${s}\t${oneLine(results[s])}`).join('\n'), title: `all styles: ${text}` }, { cache: false });
   }
 
   if (head === 'chain') {
@@ -333,7 +530,67 @@ const route = async (req) => {
       }
       return next;
     }, text);
-    return out(format === 'txt' ? output : { input: text, styles, output }, { cache: !styles.includes('random') });
+    return send(outputPayload({ input: text, style: styles.join('+'), styles, output }, `chain: ${text}`), { cache: !styles.includes('random') });
+  }
+
+  if (head === 'batch') {
+    requireMethod(req, 'POST');
+    noExtraSegments(rest);
+    if (!/^application\/json\b/i.test(String(req.headers.get('content-type')))) {
+      throw new ApiError(415, 'unsupported_media_type', 'Send a JSON body with Content-Type: application/json.');
+    }
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      throw new ApiError(400, 'invalid_json', 'Body is not valid JSON.');
+    }
+    const style = getStyle(String(body?.style ?? ''));
+    const texts = body?.texts ?? body?.inputs;
+    if (!Array.isArray(texts) || texts.length === 0) throw new ApiError(400, 'missing_texts', '"texts" must be a non-empty array of strings.');
+    if (texts.length > MAX_BATCH) throw new ApiError(400, 'batch_too_large', `Send at most ${MAX_BATCH} texts per request.`);
+    const results = texts.map((input) => {
+      if (typeof input !== 'string') return { input, output: null, error: 'not_a_string' };
+      if (input.length > MAX_TEXT) return { input: `${input.slice(0, 50)}...`, output: null, error: 'text_too_long' };
+      return { input, output: capstring(input, style) };
+    });
+    const data = format === 'csv' ? results : { style, count: results.length, results };
+    return send({ data, text: results.map((r) => oneLine(r.output ?? '')).join('\n'), title: `batch: ${style}` }, { cache: false });
+  }
+
+  if (head === 'count') {
+    requireMethod(req, 'GET');
+    const text = getText(rest, query);
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const characters = Array.from(text).length;
+    const charactersNoSpaces = Array.from(text.replace(/\s/g, '')).length;
+    const data = { input: text, words, characters, charactersNoSpaces };
+    return send({ data, text: `words: ${words}, chars: ${characters}, chars (no spaces): ${charactersNoSpaces}`, title: `count: ${text}` });
+  }
+
+  if (head === 'lorem') {
+    requireMethod(req, 'GET');
+    const [countRaw, ...extra] = rest;
+    noExtraSegments(extra);
+    const count = countRaw === undefined ? DEFAULT_LOREM : (/^\d+$/.test(countRaw) ? Number(countRaw) : NaN);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_LOREM) {
+      throw new ApiError(400, 'invalid_count', `count must be an integer from 1 to ${MAX_LOREM}.`);
+    }
+    const style = optionalStyle(query);
+    const words = Array.from({ length: count }, (_, i) => LOREM_WORDS[i % LOREM_WORDS.length]);
+    const sentence = `${words.join(' ').replace(/^./, (c) => c.toUpperCase())}.`;
+    const output = style ? capstring(sentence, style) : sentence;
+    return send(outputPayload({ count, style, output }, `lorem ${count}`), { cache: style !== 'random' });
+  }
+
+  if (head === 'spell') {
+    requireMethod(req, 'GET');
+    const text = getText(rest, query, MAX_SPELL_TEXT);
+    const style = optionalStyle(query);
+    const { output: corrected, corrections, limited } = await spellCheck(text);
+    const output = style ? capstring(corrected, style) : corrected;
+    const data = { input: text, style, output, corrections, limited };
+    return send(outputPayload(data, `spell: ${text}`), { cache: style !== 'random' });
   }
 
   if (head === 'badge') {
@@ -353,62 +610,11 @@ const route = async (req) => {
     });
   }
 
-  if (head === 'lorem') {
-    requireMethod(req, 'GET');
-    const [countRaw, ...extra] = rest;
-    noExtraSegments(extra);
-    const count = countRaw === undefined ? DEFAULT_LOREM : (/^\d+$/.test(countRaw) ? Number(countRaw) : NaN);
-    if (!Number.isInteger(count) || count < 1 || count > MAX_LOREM) {
-      throw new ApiError(400, 'invalid_count', `count must be an integer from 1 to ${MAX_LOREM}.`);
-    }
-    const style = optionalStyle(query);
-    const words = Array.from({ length: count }, (_, i) => LOREM_WORDS[i % LOREM_WORDS.length]).join(' ');
-    const output = style ? capstring(words, style) : words;
-    return out(format === 'txt' ? output : { count, style, output }, { cache: style !== 'random' });
-  }
-
-  if (head === 'spell') {
-    requireMethod(req, 'GET');
-    const text = getText(rest, query);
-    if (text.length > MAX_SPELL_TEXT) throw new ApiError(413, 'text_too_long', `Spellcheck text must be at most ${MAX_SPELL_TEXT} characters.`);
-    const style = optionalStyle(query);
-    const { output: corrected, corrections, limited } = await spellCheck(text);
-    const output = style ? capstring(corrected, style) : corrected;
-    return out(format === 'txt' ? output : { input: text, style, output, corrections, limited }, { cache: style !== 'random' });
-  }
-
-  if (head === 'batch') {
-    requireMethod(req, 'POST');
-    noExtraSegments(rest);
-    if (!/^application\/json\b/i.test(String(req.headers.get('content-type')))) {
-      throw new ApiError(415, 'unsupported_media_type', 'Send a JSON body with Content-Type: application/json.');
-    }
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      throw new ApiError(400, 'invalid_json', 'Body is not valid JSON.');
-    }
-    const style = getStyle(String(body?.style ?? ''));
-    const texts = body?.texts;
-    if (!Array.isArray(texts) || texts.length === 0) throw new ApiError(400, 'missing_texts', '"texts" must be a non-empty array of strings.');
-    if (texts.length > MAX_BATCH) throw new ApiError(400, 'batch_too_large', `Send at most ${MAX_BATCH} texts per request.`);
-    const results = texts.map((input) => {
-      if (typeof input !== 'string') return { input, output: null, error: 'not_a_string' };
-      if (input.length > MAX_TEXT) return { input, output: null, error: 'text_too_long' };
-      return { input, output: capstring(input, style) };
-    });
-    const payload = format === 'txt'
-      ? results.map((r) => oneLine(r.output ?? '')).join('\n')
-      : { style, count: results.length, results };
-    return out(payload, { cache: false });
-  }
-
   requireMethod(req, 'GET');
   const style = getStyle(head);
   const text = getText(rest, query);
   const output = capstring(text, style);
-  return out(format === 'txt' ? output : { input: text, style, output }, { cache: style !== 'random' });
+  return send(outputPayload({ input: text, style, output }, `${style}: ${text}`), { cache: style !== 'random' });
 };
 
 /**
@@ -418,8 +624,12 @@ const route = async (req) => {
  */
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  const query = new URL(req.url).searchParams;
+  let format = 'json';
   try {
-    return await route(req);
+    const { segments, ext } = parsePath(new URL(req.url).pathname);
+    format = resolveFormat(ext, query, req.headers);
+    return await route(req, format, query, segments);
   } catch (err) {
     let apiErr = err;
     /* c8 ignore start -- only the spellchecker loader can throw a non-ApiError, and only on a broken deploy */
@@ -429,9 +639,11 @@ export default async (req) => {
     }
     /* c8 ignore stop */
     const { allow, ...extra } = apiErr.extra;
+    const data = { error: { code: apiErr.code, message: apiErr.message, ...extra } };
+    // Errors are never wrapped in JSONP so a broken callback name cannot be reflected
     return respond(
-      { error: { code: apiErr.code, message: apiErr.message, ...extra } },
-      { status: apiErr.status, cache: false, headers: allow ? { Allow: allow } : {} }
+      { data, text: `error: ${apiErr.code} - ${apiErr.message}`, title: `error: ${apiErr.code}` },
+      { format: format === 'jsonp' ? 'json' : format, query, status: apiErr.status, cache: false, headers: allow ? { Allow: allow } : {} }
     );
   }
 };

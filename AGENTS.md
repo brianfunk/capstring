@@ -3,7 +3,7 @@
 ## Overview
 
 `capstring` is a lightweight JavaScript library for text capitalization and transformation.
-Zero dependencies, 37 styles, Unicode and emoji safe, ships a CLI and TypeScript types.
+Zero dependencies, many styles, Unicode and emoji safe, ships a CLI and TypeScript types.
 
 ## Quick Start
 
@@ -38,11 +38,11 @@ import { capstringAll, getStyles, isValidStyle, STYLES, CATEGORIES } from 'capst
 capstringAll('hi');     // { same: 'hi', none: '', ... } in STYLES order
 getStyles();            // fresh copy of STYLES
 isValidStyle('kebab');  // true
-STYLES;                 // frozen array of all 37 style names
+STYLES;                 // frozen array of all style names
 CATEGORIES;             // frozen { case, code, fun, encoding, art }
 ```
 
-## All 37 Styles
+## All Styles
 
 | Category | Styles |
 |----------|--------|

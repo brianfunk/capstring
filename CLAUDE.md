@@ -2,7 +2,7 @@
 
 ## Project Context
 
-capstring is a lightweight JavaScript library for text capitalization and transformation. It supports 37 styles including case transformations, code conventions, encodings, and fun Unicode styles. Serious and robust, even though it's for fun.
+capstring is a lightweight JavaScript library for text capitalization and transformation. It supports many styles including case transformations, code conventions, encodings, and fun Unicode styles. Serious and robust, even though it's for fun.
 
 ## Development Commands
 
@@ -35,7 +35,7 @@ Single-file library plus a thin CLI:
 - `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects. `nspell` and `dictionary-en` (spellcheck) are **devDependencies** on purpose: esbuild bundles them into the function and the npm package stays zero-dependency. `dictionary-en` is listed as external + included_files in `netlify.toml` because it reads its `.aff`/`.dic` files by path.
 - `netlify.toml` - publish `web/`, build copies `index.js`, bundles the function. Branch settings (production `master`, branch deploy `dev`) live in the Netlify UI, not in the file
 
-## Supported Styles (37 total)
+## Supported Styles
 
 **Case:** same, none, proper, title, sentence, upper, lower, swap
 **Code:** camel, pascal, snake, kebab, slug, constant, python, dot, path, train, hashtag, acronym
