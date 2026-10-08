@@ -237,7 +237,7 @@ curl -X POST https://capstring.netlify.app/api/batch \
 
 Output is JSON by default. Pick another format with an extension (`.txt`, `.html`, `.xml`, `.yaml`,
 `.csv`, `.jsonp`, `.svg` or `.png` for the result as an image), `?format=`, or an `Accept` header. Text is limited to 10,000 characters (500 for
-spell). Errors come back in the same format as `{ "error": { "code", "message" } }`.
+spell); GET URLs are capped around 8 KB by the host, so use `POST /api/batch` for longer text. Errors come back in the same format as `{ "error": { "code", "message" } }`.
 
 [![capstring badge](https://capstring.netlify.app/api/badge/sponge/hello%20world?label=capstring)](https://capstring.netlify.app)
 
