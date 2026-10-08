@@ -7,8 +7,8 @@
 (() => {
   const NAV = [
     { href: '/', label: 'Playground' },
-    { href: '/dev/', label: 'Developer Docs' },
-    { href: '/docs/', label: 'API Reference' }
+    { href: '/docs/', label: 'Developer Docs' },
+    { href: '/api', label: 'API Reference' }
   ];
   const ICONS = {
     github: '<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>',
@@ -28,7 +28,7 @@
         <span class="site-wordmark">cApStRiNg</span>
       </a>
       <div class="site-nav" role="navigation" aria-label="Site">
-        ${NAV.map((n) => `<a href="${n.href}"${(n.href === '/' ? path === '/' : path.startsWith(n.href)) ? ' aria-current="page"' : ''}>${n.label}</a>`).join('')}
+        ${NAV.map((n) => `<a href="${n.href}"${(n.href === '/' ? path === '/' : path === n.href || path.startsWith(n.href.endsWith('/') ? n.href : `${n.href}/`)) ? ' aria-current="page"' : ''}>${n.label}</a>`).join('')}
       </div>
       <div class="site-links">
         <a href="https://github.com/brianfunk/capstring" title="GitHub" aria-label="GitHub repository">${ICONS.github}</a>
@@ -48,8 +48,8 @@
         <a href="https://github.com/brianfunk/capstring">${ICONS.github}<span>GitHub</span></a>
         <a href="https://www.npmjs.com/package/capstring">${ICONS.npm}<span>npm</span></a>
         <a href="https://github.com/brianfunk/capstring/blob/master/LICENSE">${ICONS.mit}<span>MIT license</span></a>
-        <a href="/docs/">API Reference</a>
-        <a href="/dev/">Developer Docs</a>
+        <a href="/docs/">Developer Docs</a>
+        <a href="/api">API Reference</a>
         <a href="/openapi.json">openapi.json</a>
       </div>
       <p class="site-copyright">© 2016–${year} capstring</p>`;

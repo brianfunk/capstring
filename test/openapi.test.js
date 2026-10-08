@@ -47,15 +47,16 @@ describe('web/openapi.json', () => {
   });
 
   it('never shows a personal name on the site', () => {
-    const files = ['../web/openapi.json', '../web/index.html', '../web/404.html', '../web/site.js', '../web/docs/index.html', '../web/dev/index.html', '../web/dev/dev.js', '../web/dev/styles-data.js'];
+    const files = ['../web/openapi.json', '../web/index.html', '../web/404.html', '../web/site.js', '../web/docs/index.html', '../web/docs/docs.js', '../web/docs/styles-data.js', '../netlify/functions/swagger-page.js'];
     for (const f of files) expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/Brian|Funk/);
   });
 
-  it('the docs page loads the spec from the same place it is published', () => {
-    const docs = readFileSync(new URL('../web/docs/index.html', import.meta.url), 'utf8');
-    expect(docs).toContain("url: '/openapi.json'");
-    expect(docs).toContain('cdnjs.cloudflare.com/ajax/libs/swagger-ui/');
+  it('the Swagger page served at /api loads the spec from where it is published', () => {
+    const page = readFileSync(new URL('../netlify/functions/swagger-page.js', import.meta.url), 'utf8');
+    expect(page).toContain("url: '/openapi.json'");
+    expect(page).toContain('cdnjs.cloudflare.com/ajax/libs/swagger-ui/');
     const home = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
     expect(home).toContain('href="/docs/"');
+    expect(home).toContain('href="/api"');
   });
 });

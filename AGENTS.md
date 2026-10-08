@@ -60,7 +60,7 @@ CATEGORIES;             // frozen { case, code, fun, encoding, art }
 
 ## Website and API
 
-- `web/` - playground, `web/dev/` Developer Docs, `web/docs/` Swagger API Reference; imports `./capstring.js` (copied from `index.js` at Netlify build time)
+- `web/` - playground, `web/docs/` Developer Docs (Swagger API Reference is served at `/api` by the function); imports `./capstring.js` (copied from `index.js` at Netlify build time)
 - `netlify/functions/api.js` - HTTP API at `https://capstring.netlify.app/api` (transform, all, batch, spell, count, lorem, badge, styles; json/txt/html/xml/yaml/csv/jsonp)
 - `npm run dev` runs both locally on http://localhost:8888
 

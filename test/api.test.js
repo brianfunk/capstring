@@ -59,6 +59,15 @@ describe('GET /api', () => {
   it('honours txt', async () => {
     expect(await text('/api?format=txt')).toMatch(/^capstring \d+\.\d+\.\d+\nGET \/api\/styles\n/);
   });
+
+  it('serves the Swagger reference to browsers and JSON to everyone else', async () => {
+    const page = await call('/api', { headers: { Accept: 'text/html,application/xhtml+xml,*/*;q=0.8' } });
+    expect(page.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(await page.text()).toContain('SwaggerUIBundle');
+    expect((await call('/api/?format=html')).headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect((await call('/api', { headers: { Accept: '*/*' } })).headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect((await json('/api')).body.docs).toBe('https://capstring.netlify.app/api');
+  });
 });
 
 describe('GET /api/styles', () => {

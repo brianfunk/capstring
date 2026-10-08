@@ -4,9 +4,9 @@ a { color: var(--accent); }
 
 .docs {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) minmax(360px, 44%);
-  gap: 0 32px;
-  max-width: 1500px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 0 40px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -27,7 +27,7 @@ a { color: var(--accent); }
 .toc ol { list-style: none; margin: 0; padding: 0; }
 .toc li a { display: block; color: var(--muted); text-decoration: none; padding: 4px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; }
 .toc li a:hover { color: var(--fg); background: var(--card); }
-.toc li a[aria-current="true"] { color: var(--accent); border-left-color: var(--accent); }
+.toc li a[aria-current] { color: var(--accent); border-left-color: var(--accent); }
 .toc li.l2 a { padding-left: 22px; font-size: 13px; }
 .toc li.l3 a { padding-left: 34px; font-size: 13px; font-family: var(--mono); color: var(--accent-2); opacity: 0.85; }
 .toc li.hidden { display: none; }
@@ -56,24 +56,20 @@ a { color: var(--accent); }
 .style-entry .notes { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.92rem; }
 .style-entry .try { font-size: 0.85rem; }
 
-/* ---- right: code panel ---- */
-.code-panel { position: sticky; top: 16px; align-self: start; margin: 20px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #1b1e24; color: #e6e6e6; }
-:root[data-theme="light"] .code-panel { background: #fff; color: #1a1a1a; }
-.code-tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--border); background: var(--card); }
-.code-tabs button { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; border-radius: 6px 6px 0 0; }
-.code-tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
-.code-tabs button:hover { color: var(--fg); }
-.code-body { max-height: calc(100vh - 140px); overflow: auto; }
-.code-body pre { margin: 0; padding: 16px; font-size: 13px; line-height: 1.55; background: transparent !important; }
-.code-body pre code { background: transparent !important; text-shadow: none !important; }
-.code-foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--card); font-size: 13px; color: var(--muted); }
-.code-foot button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; }
-.code-foot button:hover { border-color: var(--accent); }
+/* ---- inline samples ---- */
+.sample { margin: 14px 0 6px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
+.sample-tabs { display: flex; align-items: center; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--border); }
+.sample-tabs button { font: inherit; font-size: 13px; padding: 5px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; border-radius: 6px 6px 0 0; }
+.sample-tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.sample-tabs button:hover { color: var(--fg); }
+.sample-tabs .copy { margin-left: auto; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; background: var(--bg); color: var(--fg); }
+.sample pre { margin: 0; padding: 14px; font-size: 13px; line-height: 1.55; overflow-x: auto; background: transparent !important; border: 0; border-radius: 0; }
+.sample pre code { background: transparent !important; text-shadow: none !important; padding: 0; }
+:root[data-theme="light"] .sample pre code, :root[data-theme="light"] .sample pre code .token { color: #1a1a1a; }
+:root[data-theme="light"] .sample .token.string { color: #0a7d3b; }
+:root[data-theme="light"] .sample .token.keyword, :root[data-theme="light"] .sample .token.function { color: #6d28d9; }
+:root[data-theme="light"] .sample .token.comment { color: #6b7280; }
 
-@media (max-width: 1100px) {
-  .docs { grid-template-columns: 200px minmax(0, 1fr); }
-  .code-panel { grid-column: 1 / -1; position: static; }
-}
 @media (max-width: 720px) {
   .docs { grid-template-columns: 1fr; }
   .toc { position: static; max-height: none; }

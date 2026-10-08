@@ -31,7 +31,7 @@ Single-file library plus a thin CLI:
   - `getStyles()`, `isValidStyle(style)`, `STYLES`, `CATEGORIES`
 - `cli.js` - `main(argv, io)` with injected I/O so it is unit-testable; `bin/capstring.js` is the shim
 - `index.d.ts` - hand-written types; `test/types.test.js` enforces that the `Style` union matches `STYLES`
-- `web/` - static site, no build step. Playground (`index.html`, `app.js`), Swagger API Reference (`docs/`, over `openapi.json`), Developer Docs (`dev/`: single Stripe-style page, per-style docs in `dev/styles-data.js` with outputs computed live), shared header/footer/theme (`site.js`, `site.css`, `theme-init.js`). Imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
+- `web/` - static site, no build step. Playground (`index.html`, `app.js`), Developer Docs (`docs/`: single Stripe-style page, per-style docs in `docs/styles-data.js` with outputs computed live). The Swagger API Reference is served by the API function at `/api` for browsers (`netlify/functions/swagger-page.js`, themed by `web/swagger-theme.css`, spec at `web/openapi.json`), shared header/footer/theme (`site.js`, `site.css`, `theme-init.js`). Imports `./capstring.js`, which Netlify's build copies from `index.js` (gitignored locally)
 - `netlify/functions/api.js` - the whole HTTP API, Functions 2.0 handler owning `/api/*`; tested by constructing `Request` objects. `nspell` and `dictionary-en` (spellcheck) are **devDependencies** on purpose: esbuild bundles them into the function and the npm package stays zero-dependency. `dictionary-en` is listed as external + included_files in `netlify.toml` because it reads its `.aff`/`.dic` files by path.
 - `netlify.toml` - publish `web/`, build copies `index.js`, bundles the function. Branch settings (production `master`, branch deploy `dev`) live in the Netlify UI, not in the file
 
@@ -54,7 +54,7 @@ Never remove a style name; `proper` and `python` are kept as aliases on purpose.
 2. Maintain 100% coverage (thresholds enforced): `npm run test:coverage`
 3. Run linter: `npm run lint`
 4. Update CHANGELOG.md for any user-facing changes; behavior changes get their own section
-5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts` **and** `web/dev/styles-data.js` **and** the enum in `web/openapi.json`, then regenerate the README table (every table row is `hello world`)
+5. Adding a style: add to `STYLES` **and** one `CATEGORIES` group **and** the `Style` union in `index.d.ts` **and** `web/docs/styles-data.js` **and** the enum in `web/openapi.json`, then regenerate the README table (every table row is `hello world`)
 6. Preserve the ASCII art header
 7. Keep the npm package lean: `test/package.test.js` fails if the tarball gains a file or exceeds the size budget. Website, API, tests, and changelog never ship to npm
 

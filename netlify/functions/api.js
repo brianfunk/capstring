@@ -9,7 +9,7 @@
 /**
  * capstring HTTP API - a single Netlify Function serving every /api route.
  *
- *   GET  /api                        service info
+ *   GET  /api                        service info (JSON), or the Swagger reference for browsers
  *   GET  /api/styles                 style names and categories
  *   GET  /api/:style/:text           one style
  *   GET  /api/all/:text              every style
@@ -28,6 +28,7 @@
 
 import capstring, { capstringAll, STYLES, CATEGORIES, isValidStyle } from '../../index.js';
 import pkg from '../../package.json' with { type: 'json' };
+import { SWAGGER_PAGE } from './swagger-page.js';
 
 export const config = { path: ['/api', '/api/*'] };
 
@@ -490,7 +491,11 @@ const route = async (req, format, query, segments) => {
 
   if (head === undefined) {
     requireMethod(req, 'GET');
-    const data = { name: pkg.name, version: pkg.version, docs: `${SITE}/#api`, formats: FORMATS, endpoints: ENDPOINTS };
+    if (format === 'html') {
+      // A browser at /api gets the interactive reference; curl and fetch get the JSON below
+      return new Response(SWAGGER_PAGE, { headers: { ...CORS, 'Content-Type': CONTENT_TYPES.html, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=3600', 'Vary': 'Accept' } });
+    }
+    const data = { name: pkg.name, version: pkg.version, docs: `${SITE}/api`, formats: FORMATS, endpoints: ENDPOINTS };
     return send({ data, text: `${pkg.name} ${pkg.version}\n${ENDPOINTS.join('\n')}`, title: 'capstring API' });
   }
 

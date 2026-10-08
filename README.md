@@ -21,7 +21,7 @@ ridiculous fun style. Unicode and emoji safe. Ships a CLI and TypeScript types.
 - **Zero dependencies** - one 17 kB file, browser-safe
 - **Unicode aware** - `Élan Vital`, `crème-brûlée`, emoji and flags survive every style
 - **Smart tokenizer** - `XMLHttpRequest` becomes `xml-http-request`, `hello_world` becomes `helloWorld`
-- **Website, HTTP API, and docs** - [capstring.netlify.app](https://capstring.netlify.app): playground, [Developer Docs](https://capstring.netlify.app/dev/), [API Reference](https://capstring.netlify.app/docs/)
+- **Website, HTTP API, and docs** - [capstring.netlify.app](https://capstring.netlify.app): playground, [Developer Docs](https://capstring.netlify.app/docs/), [API Reference](https://capstring.netlify.app/api)
 - **CLI** - `npx capstring kebab "Hello World"`
 - **TypeScript types** - autocomplete for every style name
 - **100% test coverage**
@@ -63,7 +63,7 @@ Exit code `2` means a usage error (unknown style or option, missing text).
 
 ## All Styles
 
-Every style applied to `hello world`. Full explanations with more examples are in the [Developer Docs](https://capstring.netlify.app/dev/#styles).
+Every style applied to `hello world`. Full explanations with more examples are in the [Developer Docs](https://capstring.netlify.app/docs/#styles).
 
 ### Case
 
@@ -198,7 +198,7 @@ capstring('Hello', style);      // string
 ## HTTP API
 
 Free, no key, CORS enabled, hosted at `https://capstring.netlify.app/api`. Interactive reference
-with try-it-out: [capstring.netlify.app/docs](https://capstring.netlify.app/docs/).
+with try-it-out: [capstring.netlify.app/api](https://capstring.netlify.app/api).
 
 ```bash
 curl https://capstring.netlify.app/api/title/hello%20world
@@ -234,7 +234,7 @@ spell). Errors come back in the same format as `{ "error": { "code", "message" }
 ## Behavior notes
 
 Exact rules for `title`, `sentence`, `slug`, the tokenizer, and Unicode handling are documented per
-style in the [Developer Docs](https://capstring.netlify.app/dev/#styles). The short version: every
+style in the [Developer Docs](https://capstring.netlify.app/docs/#styles). The short version: every
 style iterates code points, the reordering and art styles iterate grapheme clusters, `slug` is ASCII
 only, and `random` is the only non-deterministic style.
 
@@ -248,8 +248,8 @@ npm run test:coverage  # Test with coverage (100% required)
 npm run dev            # Netlify Dev: site + API at http://localhost:8888
 ```
 
-The website (`web/`: playground, Developer Docs, Swagger API Reference; plain HTML/CSS/JS, no build
-step) and the API (`netlify/functions/api.js`) both import `index.js` directly. The spellcheck
+The website (`web/`: playground and Developer Docs; plain HTML/CSS/JS, no build step; the Swagger API
+Reference is served by the API function at `/api`) and the API (`netlify/functions/api.js`) both import `index.js` directly. The spellcheck
 endpoint's dependencies (`nspell`, `dictionary-en`) are devDependencies bundled into the function,
 so the npm package itself stays zero-dependency.
 
