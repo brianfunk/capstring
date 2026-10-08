@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script src="/theme-init.js"></script>
+  <title>capstring Developer Docs</title>
+  <meta name="description" content="Install and use capstring in Node, the browser, TypeScript, and the command line. Every style explained in depth with live examples, plus the HTTP API from any language.">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg?v=2">
+  <link rel="apple-touch-icon" href="/icon.svg?v=2">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="./docs.css">
+</head>
+<body>
+  <div class="site-shell"><header data-site-header></header></div>
+
+  <div class="docs">
+    <nav class="toc" aria-label="On this page">
+      <div class="toc-search"><input id="toc-filter" type="search" placeholder="Filter sections" aria-label="Filter sections"></div>
+      <ol id="toc"></ol>
+    </nav>
+
+    <main class="prose" id="prose">
+      <section id="overview" data-sample="overview">
+        <h1>Developer Docs</h1>
+        <p class="lead">capstring is a small, serious, zero-dependency library for turning text into any case, code convention, encoding, or ridiculous fun style. Unicode and emoji safe. It ships a CLI, TypeScript types, and a free HTTP API, all documented on this page.</p>
+        <table class="ways">
+          <tr><th>Library</th><td>Node 22+, any modern browser, Deno, Bun</td><td><a href="#install">Install</a></td></tr>
+          <tr><th>CLI</th><td><code>npx capstring kebab "hello world"</code></td><td><a href="#cli">Command line</a></td></tr>
+          <tr><th>HTTP API</th><td><code>https://capstring.netlify.app/api</code></td><td><a href="#http-api">HTTP API</a> · <a href="/api">API Reference</a></td></tr>
+          <tr><th>Playground</th><td>Type, click to copy</td><td><a href="/">Open</a></td></tr>
+        </table>
+        <ul>
+          <li><strong>Smart tokenizer</strong>: <code>XMLHttpRequest</code>, <code>hello_world</code>, <code>hello-world</code>, and <code>helloWorld</code> all split correctly.</li>
+          <li><strong>Real slug</strong>: diacritics folded, punctuation dropped, ASCII only.</li>
+          <li><strong>Unicode and emoji safe</strong>: flags, ZWJ sequences, keycaps, and combining accents survive every style.</li>
+          <li><strong>Zero dependencies, 7 files, under 40 kB</strong> on npm, and a test fails if that ever grows.</li>
+          <li><strong>100% test coverage</strong>, every behavior change recorded in the <a href="https://github.com/brianfunk/capstring/blob/master/CHANGELOG.md">changelog</a>.</li>
+        </ul>
+      </section>
+
+      <section id="install" data-sample="install">
+        <h2>Install</h2>
+        <p>Requires Node 22.13 or newer. ES modules only: use <code>import</code>, not <code>require</code>. No runtime dependencies are installed.</p>
+        <p>In a browser with no bundler, import the library file straight from a CDN. It is dependency-free and browser-safe.</p>
+      </section>
+
+      <section id="transform" data-sample="transform">
+        <h2>Transform a string</h2>
+        <p><code>capstring(str, style = 'same', options = {})</code> returns the transformed string. The default export and the named export are the same function.</p>
+        <table>
+          <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+          <tr><td><code>str</code></td><td>string</td><td></td><td>Text to transform</td></tr>
+          <tr><td><code>style</code></td><td>Style</td><td><code>'same'</code></td><td>A style name, see <a href="#styles">Styles</a></td></tr>
+          <tr><td><code>options.strict</code></td><td>boolean</td><td><code>false</code></td><td>Throw instead of returning <code>false</code> or the input</td></tr>
+        </table>
+        <p>Passing a non-string returns <code>false</code>. An empty string returns <code>''</code>. An unknown style returns the input unchanged. These are deliberate so the function is safe to call with untrusted values.</p>
+      </section>
+
+      <section id="strict" data-sample="strict">
+        <h2>Strict mode</h2>
+        <p>Turn on <code>strict</code> to throw instead: a <code>TypeError</code> when <code>str</code> is not a string, a <code>RangeError</code> when <code>style</code> is not a known style. The CLI and the HTTP API always validate strictly.</p>
+      </section>
+
+      <section id="all" data-sample="all">
+        <h2>Every style at once</h2>
+        <p><code>capstringAll(str, options)</code> runs every style and returns an object keyed by style name in canonical order. Same options and same non-string behavior as <code>capstring</code>. The playground is built on this one call.</p>
+      </section>
+
+      <section id="discover" data-sample="discover">
+        <h2>Discover styles</h2>
+        <table>
+          <tr><th>Export</th><th>What it is</th></tr>
+          <tr><td><code>STYLES</code></td><td>Frozen array of every style name in canonical order. New styles are appended, so indexes are stable.</td></tr>
+          <tr><td><code>CATEGORIES</code></td><td>Frozen object grouping every style exactly once: <code>case</code>, <code>code</code>, <code>fun</code>, <code>encoding</code>, <code>art</code>.</td></tr>
+          <tr><td><code>getStyles()</code></td><td>A fresh, mutable copy of <code>STYLES</code>.</td></tr>
+          <tr><td><code>isValidStyle(value)</code></td><td><code>true</code> for a style name. In TypeScript it narrows <code>value</code> to <code>Style</code>.</td></tr>
+        </table>
+      </section>
+
+      <section id="styles" data-sample="styles">
+        <h2>Styles</h2>
+        <p>Every style, what it does, and how it handles the edges. Outputs on this page are computed live by the library, so they are exactly what you get. The first example is always <code>hello world</code>.</p>
+        <div id="style-docs"></div>
+      </section>
+
+      <section id="cli" data-sample="cli">
+        <h2>Command line</h2>
+        <p>The package ships a <code>capstring</code> executable. Two ways to get it:</p>
+        <pre class="usage"><code># no install, runs the latest version each time
+npx capstring kebab "hello world"
+
+# or install once and use it anywhere
+npm install -g capstring
+capstring kebab "hello world"</code></pre>
+        <pre class="usage"><code>capstring &lt;style&gt; [text...]     Transform text (reads stdin when no text is given)
+capstring --all [text...]       Print every style
+capstring --count [text...]     Count words, characters, and spaces
+capstring --list                List style names
+
+  -a, --all        Print every style
+  -c, --count      Count words, characters, and spaces
+  -l, --list       List style names, one per line
+      --json       JSON output
+  -h, --help       Show this help
+  -v, --version    Show version
+  --               End of options</code></pre>
+        <p>Multiple text arguments are joined with one space. Flags may appear anywhere. With no text argument the CLI reads all of stdin and strips one trailing newline, so it slots into pipelines. Multiline stdin is treated as one string; in the <code>--all</code> table, line breaks inside a result are shown escaped so every style stays on one row.</p>
+        <table>
+          <tr><th>Exit code</th><th>Meaning</th></tr>
+          <tr><td><code>0</code></td><td>Success</td></tr>
+          <tr><td><code>2</code></td><td>Usage error: unknown style, unknown option, or no text given on a terminal</td></tr>
+        </table>
+      </section>
+
+      <section id="typescript" data-sample="typescript">
+        <h2>TypeScript</h2>
+        <p>Types ship in the package. Every style name is a string literal in the <code>Style</code> union, so editors autocomplete them and typos fail to compile. <code>capstring</code> and <code>capstringAll</code> are overloaded so the return type matches the input: a <code>string</code> in gives a <code>string</code> back, <code>unknown</code> in gives <code>string | false</code>. The style parameter accepts <code>Style | (string &amp; {})</code>, which keeps autocomplete while still allowing arbitrary strings.</p>
+        <p>A test in the repository fails if the union ever drifts from the runtime <code>STYLES</code> array.</p>
+      </section>
+
+      <section id="http-api" data-sample="http">
+        <h2>HTTP API</h2>
+        <p>The same transformations over HTTP, for any language or no code at all. Base URL <code>https://capstring.netlify.app/api</code>, no key, CORS enabled, cacheable. The interactive <a href="/api">API Reference</a> lets you try every endpoint in the browser.</p>
+        <table>
+          <tr><th>Endpoint</th><th>Returns</th></tr>
+          <tr><td><code>GET /api/:style/:text</code></td><td><code>{ input, style, output }</code></td></tr>
+          <tr><td><code>GET /api/all/:text</code></td><td>every style at once</td></tr>
+          <tr><td><code>POST /api/batch</code></td><td><code>{ "style": "kebab", "texts": ["a", "b"] }</code>, up to 1,000</td></tr>
+          <tr><td><code>GET /api/spell/:text</code></td><td>spell-corrected text and corrections, optional <code>?style=</code></td></tr>
+          <tr><td><code>GET /api/count/:text</code></td><td>words, characters, characters without spaces</td></tr>
+          <tr><td><code>GET /api/lorem/:count</code></td><td>lorem ipsum, 1 to 1000 words, optional <code>?style=</code></td></tr>
+          <tr><td><code>GET /api/badge/:style/:text</code></td><td>SVG badge, <code>?label=</code> to override</td></tr>
+          <tr><td><code>GET /api/styles</code></td><td>style names and categories</td></tr>
+        </table>
+      </section>
+
+      <section id="formats" data-sample="formats">
+        <h2>Output formats</h2>
+        <p>JSON by default. Choose another with a file extension on the path, a <code>format</code> query parameter, or an <code>Accept</code> header. The extension wins when more than one is given. Errors come back in the same format with a matching status.</p>
+        <table>
+          <tr><th>Format</th><th>Extension</th><th>Accept</th></tr>
+          <tr><td>JSON</td><td><code>.json</code></td><td><code>application/json</code></td></tr>
+          <tr><td>Plain text</td><td><code>.txt</code></td><td><code>text/plain</code></td></tr>
+          <tr><td>HTML</td><td><code>.html</code></td><td><code>text/html</code></td></tr>
+          <tr><td>XML</td><td><code>.xml</code></td><td><code>application/xml</code></td></tr>
+          <tr><td>YAML</td><td><code>.yaml</code> or <code>.yml</code></td><td><code>text/yaml</code></td></tr>
+          <tr><td>CSV</td><td><code>.csv</code></td><td><code>text/csv</code></td></tr>
+          <tr><td>JSONP</td><td><code>.jsonp</code> with <code>?callback=</code></td><td><code>application/javascript</code></td></tr>
+          <tr><td>SVG image</td><td><code>.svg</code></td><td><code>image/svg+xml</code></td></tr>
+          <tr><td>PNG image</td><td><code>.png</code></td><td><code>image/png</code></td></tr>
+        </table>
+        <p>Use <code>?text=</code> instead of the path when the text contains slashes or ends in an extension. Add <code>?pretty=1</code> for indented JSON. Image formats draw a single line and cut output beyond 200 characters with an ellipsis.</p>
+      </section>
+
+      <section id="limits" data-sample="limits">
+        <h2>Limits and caching</h2>
+        <table>
+          <tr><th>What</th><th>Limit</th></tr>
+          <tr><td>Text</td><td>10,000 characters (GET URLs are capped at about 8 KB by the host; use <code>POST /api/batch</code> for longer text)</td></tr>
+          <tr><td>Spell check</td><td>500 characters, 50 corrections per request</td></tr>
+          <tr><td>Batch</td><td>1,000 texts, 100,000 characters in total</td></tr>
+          <tr><td>Lorem</td><td>1,000 words</td></tr>
+          <tr><td>Badge label</td><td>100 characters</td></tr>
+        </table>
+        <p>Deterministic responses carry <code>Cache-Control: public, max-age=86400</code>. Anything involving the <code>random</code> style or a POST body is <code>no-store</code>.</p>
+      </section>
+
+      <section id="package" data-sample="package">
+        <h2>What ships on npm</h2>
+        <table>
+          <tr><th>File</th><th>Purpose</th></tr>
+          <tr><td><code>index.js</code></td><td>The whole library, browser-safe</td></tr>
+          <tr><td><code>index.d.ts</code></td><td>TypeScript declarations</td></tr>
+          <tr><td><code>cli.js</code></td><td>CLI logic as a testable <code>main(argv, io)</code></td></tr>
+          <tr><td><code>bin/capstring.js</code></td><td>The <code>npx capstring</code> executable</td></tr>
+        </table>
+        <p>Plus <code>package.json</code>, <code>README.md</code>, and <code>LICENSE</code>. Zero dependencies, <code>sideEffects: false</code> so bundlers can tree-shake it. Release notes live in the <a href="https://github.com/brianfunk/capstring/blob/master/CHANGELOG.md">changelog</a>.</p>
+      </section>
+    </main>
+
+  </div>
+
+  <div class="site-shell"><footer data-site-footer></footer></div>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+  <script src="/site.js"></script>
+  <script type="module" src="./docs.js"></script>
+</body>
+</html>

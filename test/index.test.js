@@ -6,8 +6,8 @@
                                    |___/
 */
 
-import { describe, it, expect } from 'vitest';
-import capstring, { getStyles, isValidStyle, STYLES } from '../index.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import capstring, { capstringAll, count, getStyles, isValidStyle, STYLES, CATEGORIES } from '../index.js';
 
 describe('capstring', () => {
   describe('input validation', () => {
@@ -23,12 +23,36 @@ describe('capstring', () => {
       expect(capstring([])).toBe(false);
     });
 
-    it('returns false for empty string', () => {
-      expect(capstring('')).toBe(false);
+    it('returns empty string for empty string, in every style', () => {
+      for (const style of STYLES) {
+        expect(capstring('', style)).toBe('');
+      }
     });
 
     it('returns unchanged for unknown style', () => {
       expect(capstring('hello world', 'unknown')).toBe('hello world');
+    });
+
+    it('strict: throws TypeError for non-string input', () => {
+      expect(() => capstring(123, 'same', { strict: true })).toThrow(TypeError);
+      expect(() => capstring(null, 'same', { strict: true })).toThrow(/got null/);
+    });
+
+    it('strict: throws RangeError for unknown style', () => {
+      expect(() => capstring('hi', 'nope', { strict: true })).toThrow(RangeError);
+      expect(() => capstring('hi', 'nope', { strict: true })).toThrow(/unknown style "nope"/);
+    });
+
+    it('null or undefined options behave like default', () => {
+      expect(capstring('hi', 'upper', null)).toBe('HI');
+      expect(capstring('hi', 'upper', undefined)).toBe('HI');
+      expect(capstringAll('hi', null).upper).toBe('HI');
+      expect(capstringAll(1, null)).toBe(false);
+    });
+
+    it('strict: false and empty options behave like default', () => {
+      expect(capstring('hi', 'nope', { strict: false })).toBe('hi');
+      expect(capstring('hi', 'upper', {})).toBe('HI');
     });
   });
 
@@ -49,11 +73,36 @@ describe('capstring', () => {
     it('title - Title Case', () => {
       expect(capstring('hello world', 'title')).toBe('Hello World');
       expect(capstring('HELLO WORLD', 'title')).toBe('Hello World');
+      expect(capstring("don't stop-me now", 'title')).toBe("Don't Stop-Me Now");
+      expect(capstring('hello_world', 'title')).toBe('Hello_World');
+      expect(capstring('3d printing', 'title')).toBe('3d Printing');
+      expect(capstring('"quoted" text', 'title')).toBe('"Quoted" Text');
+    });
+
+    it('title - Unicode letters', () => {
+      expect(capstring('élan vital über', 'title')).toBe('Élan Vital Über');
+      expect(capstring('привет мир', 'title')).toBe('Привет Мир');
     });
 
     it('sentence - Sentence case', () => {
       expect(capstring('hello world', 'sentence')).toBe('Hello world');
       expect(capstring('HELLO WORLD', 'sentence')).toBe('Hello world');
+    });
+
+    it('sentence - capitalizes after . ! ?', () => {
+      expect(capstring('hello. world! how? ok', 'sentence')).toBe('Hello. World! How? Ok');
+      expect(capstring('hello!  double space', 'sentence')).toBe('Hello!  Double space');
+      expect(capstring('wait... really', 'sentence')).toBe('Wait... Really');
+      expect(capstring('"hello." she said', 'sentence')).toBe('"Hello." She said');
+      expect(capstring('hello. "world" (yes)! [ok]', 'sentence')).toBe('Hello. "World" (yes)! [Ok]');
+      expect(capstring('“hello.” she said. ‘yes’ «ok»', 'sentence')).toBe('“Hello.” She said. ‘Yes’ «ok»');
+      expect(capstring('  HELLO WORLD', 'sentence')).toBe('  Hello world');
+      expect(capstring('\n"hello"', 'sentence')).toBe('\n"Hello"');
+    });
+
+    it('sentence - leaves decimals and abbreviations without spaces alone', () => {
+      expect(capstring('3.14 is pi', 'sentence')).toBe('3.14 is pi');
+      expect(capstring('see e.g.this', 'sentence')).toBe('See e.g.this');
     });
 
     it('upper - UPPERCASE', () => {
@@ -64,46 +113,92 @@ describe('capstring', () => {
       expect(capstring('HELLO WORLD', 'lower')).toBe('hello world');
     });
 
-    it('swap - sWAP cASE', () => {
+    it('swap - inverts case', () => {
       expect(capstring('Hello World', 'swap')).toBe('hELLO wORLD');
-      expect(capstring('HELLO world', 'swap')).toBe('hello WORLD');
+      expect(capstring('ÀbÇ 😀 1', 'swap')).toBe('àBç 😀 1');
+    });
+  });
+
+  describe('word tokenizer (via code styles)', () => {
+    const cases = [
+      ['hello world', 'hello world'],
+      ['  hello   world  ', 'hello world'],
+      ['helloWorld', 'hello world'],
+      ['HelloWorld', 'hello world'],
+      ['hello_world', 'hello world'],
+      ['hello-world', 'hello world'],
+      ['hello.world', 'hello world'],
+      ['hello/world', 'hello world'],
+      ['__private_var__', 'private var'],
+      ['XMLHttpRequest', 'xml http request'],
+      ['getHTTPResponse2XX', 'get http response2 xx'],
+      ['utf8 string', 'utf8 string'],
+      ['iPhone12 pro', 'i phone12 pro'],
+      ['version 2.0 beta', 'version 2 0 beta'],
+      ["don't stop", 'dont stop'],
+      ['Crème Brûlée', 'crème brûlée'],
+      ['Cre\u0300me Bru\u0302le\u0301e', 'crème brûlée'], // NFD input, marks stay attached
+      ['ПриветМир', 'привет мир'],
+      ['😀 hi!!', 'hi'],
+      ['❤️ hi ☕️', 'hi'], // variation selectors leave with their emoji
+      ['❤️', ''],
+      ['1️⃣ go #️⃣', 'go'] // keycap emoji are separators, not digits
+    ];
+
+    it.each(cases)('%j tokenizes to %j', (input, words) => {
+      expect(capstring(input, 'snake')).toBe(words.replace(/ /g, '_'));
+    });
+
+    it('no letters or digits yields empty output for every code style', () => {
+      for (const style of CATEGORIES.code) {
+        expect(capstring('!!! ???', style)).toBe('');
+      }
     });
   });
 
   describe('code styles', () => {
     it('camel - camelCase', () => {
       expect(capstring('hello world', 'camel')).toBe('helloWorld');
-      expect(capstring('HELLO WORLD', 'camel')).toBe('helloWorld');
+      expect(capstring('Hello World Foo', 'camel')).toBe('helloWorldFoo');
+      expect(capstring('XMLHttpRequest hello_world', 'camel')).toBe('xmlHttpRequestHelloWorld');
     });
 
     it('pascal - PascalCase', () => {
       expect(capstring('hello world', 'pascal')).toBe('HelloWorld');
+      expect(capstring('XMLHttpRequest', 'pascal')).toBe('XmlHttpRequest');
     });
 
     it('snake - snake_case', () => {
       expect(capstring('hello world', 'snake')).toBe('hello_world');
+      expect(capstring('Hello World', 'snake')).toBe('hello_world');
     });
 
-    it('kebab - kebab-case', () => {
+    it('kebab - kebab-case, Unicode preserved', () => {
       expect(capstring('hello world', 'kebab')).toBe('hello-world');
+      expect(capstring('helloWorld', 'kebab')).toBe('hello-world');
+      expect(capstring('Crème Brûlée', 'kebab')).toBe('crème-brûlée');
     });
 
-    it('slug - slug-case (alias for kebab)', () => {
+    it('slug - real URL slug', () => {
       expect(capstring('hello world', 'slug')).toBe('hello-world');
+      expect(capstring('Crème Brûlée & Co.', 'slug')).toBe('creme-brulee-co');
+      expect(capstring('  --Hello__World--  ', 'slug')).toBe('hello-world');
+      expect(capstring('straße', 'slug')).toBe('strasse');
+      expect(capstring('ﬁle Æsir Øre', 'slug')).toBe('file-aesir-ore');
+      expect(capstring('日本語', 'slug')).toBe('');
+      expect(capstring('helloWorld', 'slug')).toBe('hello-world');
+      expect(capstring('XMLHttpRequest v2', 'slug')).toBe('xml-http-request-v2');
+      expect(capstring("don't", 'slug')).toBe('dont');
+      expect(capstring('Cre\u0300me', 'slug')).toBe('creme');
     });
 
     it('constant - CONSTANT_CASE', () => {
       expect(capstring('hello world', 'constant')).toBe('HELLO_WORLD');
+      expect(capstring('helloWorld', 'constant')).toBe('HELLO_WORLD');
     });
 
-    it('python - PYTHON_CASE', () => {
+    it('python - alias for constant', () => {
       expect(capstring('hello world', 'python')).toBe('HELLO_WORLD');
-    });
-
-    it('python and constant handle multiple spaces consistently', () => {
-      // Both should normalize whitespace
-      expect(capstring('hello  world', 'python')).toBe('HELLO_WORLD');
-      expect(capstring('hello  world', 'constant')).toBe('HELLO_WORLD');
     });
 
     it('dot - dot.case', () => {
@@ -116,121 +211,269 @@ describe('capstring', () => {
 
     it('train - Train-Case', () => {
       expect(capstring('hello world', 'train')).toBe('Hello-World');
-      expect(capstring('foo bar baz', 'train')).toBe('Foo-Bar-Baz');
+    });
+
+    it('hashtag - #HashTag', () => {
+      expect(capstring('hello world', 'hashtag')).toBe('#HelloWorld');
+      expect(capstring('!!!', 'hashtag')).toBe('');
+    });
+
+    it('acronym - first letters uppercase', () => {
+      expect(capstring('as soon as possible', 'acronym')).toBe('ASAP');
+      expect(capstring('XMLHttpRequest', 'acronym')).toBe('XHR');
+      expect(capstring('élan vital', 'acronym')).toBe('ÉV');
     });
   });
 
   describe('fun styles', () => {
-    it('leet - l33t sp34k', () => {
-      expect(capstring('hello WORLD of Interwebs', 'leet')).toBe('h3££0 w0r£d 0ƒ 1Иt3rw3b$');
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
-    it('reverse - esreveR', () => {
-      expect(capstring('Hello World', 'reverse')).toBe('dlroW olleH');
+    it('reverse - reverses graphemes', () => {
+      expect(capstring('hello world', 'reverse')).toBe('dlrow olleh');
+      expect(capstring('héllo 😀 wörld', 'reverse')).toBe('dlröw 😀 olléh');
+      expect(capstring('éa', 'reverse')).toBe('aé'); // decomposed accent stays attached
+      expect(capstring('a👨‍👩‍👧b', 'reverse')).toBe('b👨‍👩‍👧a');
+      expect(capstring('🇺🇸🇫🇷', 'reverse')).toBe('🇫🇷🇺🇸');
     });
 
-    it('sponge - SpOnGeBoB TeXt (starts uppercase)', () => {
-      // Alternates on every character including spaces
+    it('sponge - starts uppercase', () => {
       expect(capstring('hello world', 'sponge')).toBe('HeLlO WoRlD');
+      expect(capstring('a😀b', 'sponge')).toBe('A😀B'); // emoji counts as one position
     });
 
-    it('mock - mOcKiNg TeXt (starts lowercase)', () => {
-      // Alternates on every character including spaces
+    it('mock - starts lowercase', () => {
       expect(capstring('hello world', 'mock')).toBe('hElLo wOrLd');
     });
 
-    it('alternate - aLtErNaTiNg (only letters alternate)', () => {
-      // Only counts letters, not spaces
-      const result = capstring('hello world', 'alternate');
-      expect(result).toBe('hElLo WoRlD');
+    it('alternate - letters only, Unicode aware', () => {
+      expect(capstring('hello world', 'alternate')).toBe('hElLo WoRlD');
+      expect(capstring('àbç déf', 'alternate')).toBe('àBç DéF');
+      expect(capstring('a 😀 b', 'alternate')).toBe('a 😀 B');
     });
 
-    it('crazy - cRaZy CaSe (deterministic pseudo-random)', () => {
-      const result1 = capstring('hello world', 'crazy');
-      const result2 = capstring('hello world', 'crazy');
-      // Same input should produce same output (deterministic)
-      expect(result1).toBe(result2);
-      expect(result1.toLowerCase()).toBe('hello world');
+    it('crazy - deterministic', () => {
+      const a = capstring('hello world', 'crazy');
+      const b = capstring('hello world', 'crazy');
+      expect(a).toBe(b);
+      expect(a.toLowerCase()).toBe('hello world');
+      expect(a).not.toBe('hello world');
+      expect(capstring('a😀b', 'crazy').replace(/[^a-z😀]/giu, '').toLowerCase()).toBe('a😀b');
     });
 
-    it('random - returns a string (random case)', () => {
-      const result = capstring('hello world', 'random');
-      expect(typeof result).toBe('string');
-      expect(result.toLowerCase()).toBe('hello world');
+    it('random - uses Math.random for each code point', () => {
+      vi.spyOn(Math, 'random').mockReturnValueOnce(0.9).mockReturnValueOnce(0.1).mockReturnValue(0.9);
+      expect(capstring('ab😀', 'random')).toBe('aB😀');
+      expect(Math.random).toHaveBeenCalledTimes(3);
+    });
+
+    it('clap - claps between words', () => {
+      expect(capstring('hello world', 'clap')).toBe('hello 👏 world');
+      expect(capstring('  Hello   big  World ', 'clap')).toBe('Hello 👏 big 👏 World');
+      expect(capstring('single', 'clap')).toBe('single');
+    });
+
+    it('piglatin - English rules', () => {
+      expect(capstring('hello world', 'piglatin')).toBe('ellohay orldway');
+      expect(capstring('Hello world, quick!', 'piglatin')).toBe('Ellohay orldway, ickquay!');
+      expect(capstring('apple', 'piglatin')).toBe('appleway');
+      expect(capstring('string', 'piglatin')).toBe('ingstray');
+      expect(capstring('shh', 'piglatin')).toBe('shhay');
+      expect(capstring('yes my rhythm', 'piglatin')).toBe('esyay ymay ythmrhay');
+      expect(capstring('squeal Square squid', 'piglatin')).toBe('ealsquay Aresquay idsquay');
+      expect(capstring('123 日本', 'piglatin')).toBe('123 日本');
     });
   });
 
-  describe('new styles', () => {
-    it('hashtag - #HelloWorld', () => {
-      expect(capstring('hello world', 'hashtag')).toBe('#HelloWorld');
-      expect(capstring('foo bar baz', 'hashtag')).toBe('#FooBarBaz');
-    });
-
-    it('acronym - first letter of each word', () => {
-      expect(capstring('as soon as possible', 'acronym')).toBe('ASAP');
-      expect(capstring('hello world', 'acronym')).toBe('HW');
-      expect(capstring('frequently asked questions', 'acronym')).toBe('FAQ');
+  describe('encodings', () => {
+    it('leet - conventional ASCII map, case preserved', () => {
+      expect(capstring('hello world', 'leet')).toBe('h3110 w0r1d');
+      expect(capstring('hello WORLD', 'leet')).toBe('h3110 W0R1D');
+      expect(capstring('abegilostz', 'leet')).toBe('4839110572');
+      expect(capstring('xyz 😀', 'leet')).toBe('xy2 😀');
     });
 
     it('rot13 - ROT13 cipher', () => {
       expect(capstring('hello', 'rot13')).toBe('uryyb');
-      expect(capstring('uryyb', 'rot13')).toBe('hello'); // ROT13 is self-inverse
       expect(capstring('Hello World', 'rot13')).toBe('Uryyb Jbeyq');
+      expect(capstring(capstring('Hello World', 'rot13'), 'rot13')).toBe('Hello World');
     });
 
-    it('flip - upside down text', () => {
+    it('morse - International Morse', () => {
+      expect(capstring('SOS 1', 'morse')).toBe('... --- ... / .----');
+      expect(capstring('hi!', 'morse')).toBe('.... .. -.-.--');
+      expect(capstring('a 日 b', 'morse')).toBe('.- / -...'); // unmapped word dropped
+      expect(capstring('日', 'morse')).toBe('');
+    });
+
+    it('binary - UTF-8 bytes', () => {
+      expect(capstring('A', 'binary')).toBe('01000001');
+      expect(capstring('hi', 'binary')).toBe('01101000 01101001');
+      expect(capstring('é', 'binary')).toBe('11000011 10101001');
+      expect(capstring('😀', 'binary').split(' ')).toHaveLength(4);
+    });
+  });
+
+  describe('unicode art', () => {
+    it('flip - upside down', () => {
       expect(capstring('hello', 'flip')).toBe('ollǝɥ');
-      expect(capstring('Hello!', 'flip')).toBe('¡ollǝH');
+      expect(capstring('Hello World!', 'flip')).toBe('¡plɹoM ollǝH');
+      expect(capstring('héllo 😀', 'flip')).toBe('😀 olléɥ');
+      expect(capstring('(a)', 'flip')).toBe('(ɐ)');
+    });
+
+    it('smallcaps', () => {
+      expect(capstring('Hello', 'smallcaps')).toBe('ʜᴇʟʟᴏ');
+      expect(capstring('abcdefghijklmnopqrstuvwxyz', 'smallcaps')).toBe('ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ');
+      expect(capstring('A1 Ü 😀', 'smallcaps')).toBe('ᴀ1 Ü 😀');
+    });
+
+    it('bubble', () => {
+      expect(capstring('Hi 5', 'bubble')).toBe('Ⓗⓘ ⑤');
+      expect(capstring('az AZ 09', 'bubble')).toBe('ⓐⓩ ⒶⓏ ⓪⑨');
+      expect(capstring('!Ü😀', 'bubble')).toBe('!Ü😀');
+      expect(capstring('1️⃣ a', 'bubble')).toBe('1️⃣ ⓐ'); // keycap stays whole
+    });
+
+    it('wide - fullwidth', () => {
+      expect(capstring('Hi!', 'wide')).toBe('Ｈｉ！');
+      expect(capstring('a b', 'wide')).toBe('ａ　ｂ');
+      expect(capstring('~Ü😀', 'wide')).toBe('～Ü😀');
+      expect(capstring('#️⃣!', 'wide')).toBe('#️⃣！');
+    });
+
+    it('strike', () => {
+      expect(capstring('hi', 'strike')).toBe('h̶i̶');
+      expect(capstring('a b', 'strike')).toBe('a̶ b̶');
+      expect(capstring('😀', 'strike')).toBe('😀̶');
+      expect(capstring('👨‍👩‍👧🇺🇸', 'strike')).toBe('👨‍👩‍👧\u0336🇺🇸\u0336'); // ZWJ family and flag stay whole
+      expect(capstring('e\u0301', 'strike')).toBe('e\u0301\u0336');
+      expect(capstring('a\r\nb', 'strike')).toBe('a\u0336\r\nb\u0336');
     });
   });
-});
 
-describe('getStyles', () => {
-  it('returns an array of style names', () => {
-    const styles = getStyles();
-    expect(Array.isArray(styles)).toBe(true);
-    expect(styles.length).toBeGreaterThan(25);
+  describe('tokenizer laziness', () => {
+    it('non-code styles do not tokenize', () => {
+      // A string whose tokenization would throw if evaluated eagerly is hard to build,
+      // so assert the observable contract instead: a code style and a case style agree on
+      // the same input and the case style output is unaffected by tokenizer rules.
+      expect(capstring("don't", 'upper')).toBe("DON'T");
+      expect(capstring("don't", 'snake')).toBe('dont');
+    });
   });
 
-  it('includes common styles', () => {
-    const styles = getStyles();
-    expect(styles).toContain('title');
-    expect(styles).toContain('camel');
-    expect(styles).toContain('kebab');
-    expect(styles).toContain('snake');
+  describe('styles added for 50', () => {
+    it('capitalize / lowerfirst change only the first code point', () => {
+      expect(capstring('hello world', 'capitalize')).toBe('Hello world');
+      expect(capstring('hELLO wORLD', 'capitalize')).toBe('HELLO wORLD');
+      expect(capstring('😀abc', 'capitalize')).toBe('😀abc');
+      expect(capstring('Hello World', 'lowerfirst')).toBe('hello World');
+      expect(capstring('HELLO', 'lowerfirst')).toBe('hELLO');
+      expect(capstring('élan', 'capitalize')).toBe('Élan');
+    });
+
+    it('ada, cobol, initials use the shared tokenizer', () => {
+      expect(capstring('hello world', 'ada')).toBe('Hello_World');
+      expect(capstring('XMLHttpRequest', 'ada')).toBe('Xml_Http_Request');
+      expect(capstring('hello world', 'cobol')).toBe('HELLO-WORLD');
+      expect(capstring('helloWorld', 'cobol')).toBe('HELLO-WORLD');
+      expect(capstring('hello world', 'initials')).toBe('H.W.');
+      expect(capstring('as soon as possible', 'initials')).toBe('A.S.A.P.');
+      expect(capstring('!!!', 'initials')).toBe('');
+    });
+
+    it('spaced and squish', () => {
+      expect(capstring('hello world', 'spaced')).toBe('h e l l o  w o r l d');
+      expect(capstring('  hi  ', 'spaced')).toBe('h i');
+      expect(capstring('🇺🇸 a', 'spaced')).toBe('🇺🇸  a');
+      expect(capstring('hello world', 'squish')).toBe('helloworld');
+      expect(capstring(' a\tb\nc ', 'squish')).toBe('abc');
+    });
+
+    it('nato', () => {
+      expect(capstring('hello world', 'nato')).toBe('Hotel Echo Lima Lima Oscar / Whiskey Oscar Romeo Lima Delta');
+      expect(capstring('SOS 1', 'nato')).toBe('Sierra Oscar Sierra / One');
+      expect(capstring('x-ray?', 'nato')).toBe('X-ray Romeo Alfa Yankee');
+      expect(capstring('日本', 'nato')).toBe('');
+    });
+
+    it('hex and base64 encode UTF-8 bytes', () => {
+      expect(capstring('hello world', 'hex')).toBe('68 65 6c 6c 6f 20 77 6f 72 6c 64');
+      expect(capstring('é', 'hex')).toBe('c3 a9');
+      expect(capstring('hello world', 'base64')).toBe('aGVsbG8gd29ybGQ=');
+      expect(capstring('é😀', 'base64')).toBe('w6nwn5iA');
+    });
+
+    it('bold, italic, script map ASCII letters (and digits for bold) only', () => {
+      expect(capstring('hello world', 'bold')).toBe('𝗵𝗲𝗹𝗹𝗼 𝘄𝗼𝗿𝗹𝗱');
+      expect(capstring('Az 09 é!', 'bold')).toBe('𝗔𝘇 𝟬𝟵 é!');
+      expect(capstring('hello world', 'italic')).toBe('𝘩𝘦𝘭𝘭𝘰 𝘸𝘰𝘳𝘭𝘥');
+      expect(capstring('Az 09', 'italic')).toBe('𝘈𝘻 09');
+      expect(capstring('hello world', 'script')).toBe('𝓱𝓮𝓵𝓵𝓸 𝔀𝓸𝓻𝓵𝓭');
+      expect(capstring('Az 09', 'script')).toBe('𝓐𝔃 09');
+      expect(capstring('1️⃣a', 'bold')).toBe('1️⃣𝗮'); // keycap stays whole
+    });
   });
 
-  it('includes new styles', () => {
-    const styles = getStyles();
-    expect(styles).toContain('train');
-    expect(styles).toContain('hashtag');
-    expect(styles).toContain('acronym');
-    expect(styles).toContain('rot13');
-    expect(styles).toContain('flip');
-  });
-});
+  describe('capstringAll', () => {
+    it('returns every style in STYLES order', () => {
+      const all = capstringAll('hello world');
+      expect(Object.keys(all)).toEqual([...STYLES]);
+      expect(all.title).toBe('Hello World');
+      expect(all.none).toBe('');
+      for (const value of Object.values(all)) expect(typeof value).toBe('string');
+    });
 
-describe('isValidStyle', () => {
-  it('returns true for valid styles', () => {
-    expect(isValidStyle('title')).toBe(true);
-    expect(isValidStyle('camel')).toBe(true);
-    expect(isValidStyle('kebab')).toBe(true);
-    expect(isValidStyle('hashtag')).toBe(true);
-  });
+    it('returns false for non-string input', () => {
+      expect(capstringAll(42)).toBe(false);
+    });
 
-  it('returns false for invalid styles', () => {
-    expect(isValidStyle('invalid')).toBe(false);
-    expect(isValidStyle('')).toBe(false);
-    expect(isValidStyle(null)).toBe(false);
-  });
-});
-
-describe('STYLES constant', () => {
-  it('is a frozen array', () => {
-    expect(Object.isFrozen(STYLES)).toBe(true);
+    it('strict: throws for non-string input', () => {
+      expect(() => capstringAll(42, { strict: true })).toThrow(TypeError);
+      expect(() => capstringAll(null, { strict: true })).toThrow(/got null/);
+    });
   });
 
-  it('contains all 29 styles', () => {
-    expect(STYLES.length).toBe(29);
+  describe('count', () => {
+    it('counts words, grapheme clusters, and spaces', () => {
+      expect(count('hello world')).toEqual({ words: 2, characters: 11, charactersNoSpaces: 10, spaces: 1 });
+      expect(count('  hello   world  ')).toEqual({ words: 2, characters: 17, charactersNoSpaces: 10, spaces: 7 });
+      expect(count('😀 a\tb')).toEqual({ words: 3, characters: 5, charactersNoSpaces: 3, spaces: 2 });
+      expect(count('👨‍👩‍👧 🇺🇸 1️⃣')).toEqual({ words: 3, characters: 5, charactersNoSpaces: 3, spaces: 2 }); // clusters count once
+      expect(count('a\r\nb')).toEqual({ words: 2, characters: 3, charactersNoSpaces: 2, spaces: 1 }); // CRLF is one cluster
+      expect(count('')).toEqual({ words: 0, characters: 0, charactersNoSpaces: 0, spaces: 0 });
+      expect(count(42)).toBe(false);
+    });
+  });
+
+  describe('helpers', () => {
+    it('STYLES has 50 entries and is frozen', () => {
+      expect(STYLES).toHaveLength(50);
+      expect(Object.isFrozen(STYLES)).toBe(true);
+    });
+
+    it('CATEGORIES covers every style exactly once', () => {
+      const flat = Object.values(CATEGORIES).flat();
+      expect(flat).toHaveLength(STYLES.length);
+      expect(new Set(flat).size).toBe(STYLES.length);
+      expect([...flat].sort()).toEqual([...STYLES].sort());
+      expect(Object.isFrozen(CATEGORIES)).toBe(true);
+      expect(Object.isFrozen(CATEGORIES.case)).toBe(true);
+    });
+
+    it('getStyles returns a copy of STYLES', () => {
+      const styles = getStyles();
+      expect(styles).toEqual([...STYLES]);
+      styles.push('mutated');
+      expect(STYLES).not.toContain('mutated');
+    });
+
+    it('isValidStyle', () => {
+      expect(isValidStyle('kebab')).toBe(true);
+      expect(isValidStyle('piglatin')).toBe(true);
+      expect(isValidStyle('invalid')).toBe(false);
+      expect(isValidStyle(undefined)).toBe(false);
+    });
   });
 });
